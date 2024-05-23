@@ -65,7 +65,7 @@ void push(struct Tiket tiket) {
 
     FILE *file = fopen(FILE_PESANAN, "a");
     if (file == NULL) {
-        printf("Gagal membuka file pesanan.\n");
+        printf("Gagal membuka file pesanan.\n\n");
         return;
     }
     long int hargaNumerik = konversiHarga(tiket.hotel.harga);
@@ -80,7 +80,7 @@ void pesanTiket() {
 
     FILE *file = fopen(FILE_HOTEL, "r");
     if (file == NULL) {
-        printf("Gagal membuka file hotel.\n");
+        printf("Gagal membuka file hotel.\n\n");
         return;
     }
 
@@ -112,7 +112,7 @@ void pesanTiket() {
 
     file = fopen(FILE_HOTEL, "r");
     if (file == NULL) {
-        printf("Gagal membuka file hotel.\n");
+        printf("Gagal membuka file hotel.\n\n");
         return;
     }
     printf("\nDaftar Hotel:\n");
@@ -163,7 +163,7 @@ void pesanTiket() {
 void lihatTiket() {
     FILE *file = fopen(FILE_PESANAN, "r");
     if (file == NULL) {
-        printf("Gagal membuka file pesanan.\n");
+        printf("Gagal membuka file pesanan.\n\n");
         return;
     }
 
@@ -201,6 +201,7 @@ void lihatHotel() {
     printf("5. Urutkan Hotel Berdasarkan Bintang Terkecil\n");
     printf("6. Urutkan Hotel Berdasarkan Bintang Terbesar\n");
     printf("7. Lihat Hotel Berdasarkan Tipe Penginapan\n");
+    printf("8. Kembali\n");
     printf("Pilihan Anda: ");
     scanf("%d", &pilihan);
 
@@ -225,6 +226,9 @@ void lihatHotel() {
             break;
         case 7:
             lihatHotelBerdasarkanTipe();
+            break;
+        case 8:
+            printf("\n");
             break;
         default:
             printf("Pilihan tidak valid.\n");
@@ -428,7 +432,7 @@ void urutHotelBerdasarkanRating(char urutan) {
 void batalkanPesan() {
     FILE *file = fopen(FILE_PESANAN, "r");
     if (file == NULL) {
-        printf("Gagal membuka file pesanan.\n");
+        printf("Gagal membuka file pesanan.\n\n");
         return;
     }
 

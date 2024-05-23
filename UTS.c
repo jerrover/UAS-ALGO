@@ -23,12 +23,6 @@ struct Tiket {
     int jumlah_kamar;
 };
 
-struct TiketNode {
-    struct TiketNode *next;
-    struct Tiket tiket;
-};
-struct TiketNode *top = NULL;
-
 long int konversiHarga(const char *harga) {
     long int nilai = 0;
     int panjang = strlen(harga);
@@ -52,16 +46,38 @@ long int konversiHarga(const char *harga) {
     return nilai;
 }
 
-void push(struct Tiket tiket) {
-    struct TiketNode *newNode = (struct TiketNode *)malloc(sizeof(struct TiketNode));
-    if (newNode == NULL) {
-        printf("Memori penuh, tidak dapat menambahkan pemesanan tiket.\n");
-        return;
-    }
+struct TreeNode {
+    struct Tiket tiket;
+    struct TreeNode *left;
+    struct TreeNode *right;
+};
 
-    newNode->tiket = tiket;
-    newNode->next = top;
-    top = newNode;
+struct TreeNode *root = NULL;
+
+struct TreeNode* createNode(struct Tiket tiket) {
+    struct TreeNode *newNode = (struct TreeNode *)malloc(sizeof(struct TreeNode));
+    if (newNode != NULL) {
+        newNode->tiket = tiket;
+        newNode->left = NULL;
+        newNode->right = NULL;
+    }
+    return newNode;
+}
+
+void insertNode(struct TreeNode **node, struct Tiket tiket) {
+    if (*node == NULL) {
+        *node = createNode(tiket);
+    } else {
+        if (strcmp(tiket.hotel.nama_hotel, (*node)->tiket.hotel.nama_hotel) < 0) {
+            insertNode(&((*node)->left), tiket);
+        } else {
+            insertNode(&((*node)->right), tiket);
+        }
+    }
+}
+
+void push(struct Tiket tiket) {
+    insertNode(&root, tiket);
 
     FILE *file = fopen(FILE_PESANAN, "a");
     if (file == NULL) {
@@ -73,7 +89,6 @@ void push(struct Tiket tiket) {
             tiket.jumlah_tamu, tiket.jumlah_kamar, hargaNumerik);
     fclose(file);
 }
-
 
 void pesanTiket() {
     int jumlah_hotel = 0;
@@ -142,7 +157,7 @@ void pesanTiket() {
         printf("Gagal membuka file hotel.\n");
         return;
     }
-    
+
     for (int i = 1; i <= nomor_terpilih; i++) {
         fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga);
     }
@@ -159,7 +174,7 @@ void pesanTiket() {
     tiket.jumlah_tamu = jumlah_tamu;
     tiket.jumlah_kamar = jumlah_kamar;
 
-    push(tiket); 
+    push(tiket);
     printf("\nTiket berhasil dipesan.\n\n");
 }
 
@@ -178,7 +193,7 @@ void lihatTiket() {
     struct Tiket pesanan;
     while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%s\n", pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
                   &pesanan.durasi, &pesanan.jumlah_tamu, &pesanan.jumlah_kamar, pesanan.hotel.harga) != EOF) {
-        
+
         long int hargaNumerik = konversiHarga(pesanan.hotel.harga);
         hargaNumerik *= pesanan.jumlah_kamar * pesanan.durasi;
 
@@ -495,9 +510,17 @@ void batalkanPesan() {
         printf("Tidak ada pesanan yang bisa dibatalkan.\n");
     }
 }
-int main(){
+
+void freeMemoryBST(struct TreeNode *node) {
+    if (node != NULL) {
+        freeMemoryBST(node->left); // Melepaskan node di sebelah kiri
+        freeMemoryBST(node->right); // Melepaskan node di sebelah kanan
+        free(node); // Melepaskan node saat ini
+    }
+}
+int main() {
     int pilihan;
-    do{
+    do {
         printf("------------------------------------------------------------------------------------------------------------\n");
         printf("----------------------------------------------  book@serpong  ----------------------------------------------\n");
         printf("------------------------------------------------------------------------------------------------------------\n");
@@ -520,7 +543,7 @@ int main(){
             case 3:
                 batalkanPesan();
                 break;
-                case 4:
+            case 4:
                 lihatHotel();
                 break;
             case 5:
@@ -530,10 +553,7 @@ int main(){
                 printf("Pilihan tidak valid.\n");
         }
     } while (pilihan != 5);
-     while (top != NULL) {
-        struct TiketNode *temp = top;
-        top = top->next;
-        free(temp);
-    }
+        freeMemoryBST(root);
+
     return 0;
 }

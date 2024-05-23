@@ -122,7 +122,7 @@ void pesanTiket() {
         return;
     }
     printf("\nDaftar Hotel:\n");
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga");
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
     int nomor_hotel = 1;
     while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", nomor_hotel, nama_hotel, bintang_hotel, rating,
@@ -272,7 +272,7 @@ void lihatHotelBerdasarkanTipe() {
     fclose(file);
 
     printf("\nDaftar Hotel Berdasarkan Tipe Penginapan '%c':\n", tipe);
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga");
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
     for (int i = 0; i < jumlah_hotel; i++) {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
                hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
@@ -322,7 +322,7 @@ void urutHotelBerdasarkanBintang(char urutan) {
             }
         }
     }
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga");
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
     for (int i = 0; i < jumlah_hotel; i++) {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
                hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
@@ -374,7 +374,7 @@ void lihatHotelBerdasarkanHarga(char urutan) {
         printf("\nDaftar Hotel Berdasarkan Harga Terendah:\n");
     }
 
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga");
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
     for (int i = 0; i < jumlah_hotel; i++) {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
                hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
@@ -423,7 +423,7 @@ void urutHotelBerdasarkanRating(char urutan) {
             }
         }
     }
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga");
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
     for (int i = 0; i < jumlah_hotel; i++) {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
                hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
@@ -465,36 +465,41 @@ void batalkanPesan() {
         printf("------------------------------------------------------------------------------------------------------------\n\n");
 
         int nomor;
-        do {
+        while (1) {
             printf("\nMasukkan nomor pesanan yang ingin dibatalkan (tekan 0 untuk kembali): ");
             scanf("%d", &nomor);
-            if (nomor == 0) {
+            if (nomor >= 1 && nomor <= jumlah_pesanan) {
+                break;
+            } else if (nomor == 0) {
                 printf("\n");
-                return;
-            } else if (nomor >= 1 && nomor <= jumlah_pesanan) {
-                file = fopen(FILE_PESANAN, "w");
-                if (file == NULL) {
-                    printf("Gagal membuka file pesanan.\n");
-                    return;
-                }
-                for (int i = 0; i < jumlah_pesanan; i++) {
-                    if (i != nomor - 1) {
-                        fprintf(file, "%s#%s#%d#%d#%d#%s\n", pesanan[i].hotel.nama_hotel, pesanan[i].tanggal_checkin,
-                                pesanan[i].durasi, pesanan[i].jumlah_tamu, pesanan[i].jumlah_kamar,
-                                pesanan[i].hotel.harga);
-                    }
-                }
-                fclose(file);
-
-                printf("Pesanan nomor %d berhasil dibatalkan.\n", nomor);
+                break;
             } else {
                 printf("Nomor pesanan tidak valid. Silahkan masukkan angka yang valid.\n");
             }
-        } while (nomor != 0);
+        }
+
+        if (nomor != 0) {
+            file = fopen(FILE_PESANAN, "w");
+            if (file == NULL) {
+                printf("Gagal membuka file pesanan.\n");
+                return;
+            }
+            for (int i = 0; i < jumlah_pesanan; i++) {
+                if (i != nomor - 1) {
+                    fprintf(file, "%s#%s#%d#%d#%d#%s\n", pesanan[i].hotel.nama_hotel, pesanan[i].tanggal_checkin,
+                            pesanan[i].durasi, pesanan[i].jumlah_tamu, pesanan[i].jumlah_kamar,
+                            pesanan[i].hotel.harga);
+                }
+            }
+            fclose(file);
+
+            printf("Pesanan nomor %d berhasil dibatalkan.\n", nomor);
+        }
     } else {
         printf("Tidak ada pesanan yang bisa dibatalkan.\n");
     }
 }
+
 int main(){
     int pilihan;
     do{

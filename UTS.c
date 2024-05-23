@@ -96,8 +96,14 @@ void pesanTiket() {
 
     printf("Masukkan tanggal check-in (dd/mm/yyyy): ");
     char tanggal_checkin[20];
-    scanf("%s", tanggal_checkin);
+    scanf("%19s", tanggal_checkin);
 
+    int dd, mm, yy;
+    while (sscanf(tanggal_checkin, "%d/%d/%d", &dd, &mm, &yy) != 3 ||
+           dd < 1 || dd > 31 || mm < 1 || mm > 12 || yy < 0 || yy > 9999) {
+        printf("Format tanggal tidak valid. Silahkan masukkan tanggal check-in yang benar (dd/mm/yyyy): ");
+        scanf("%19s", tanggal_checkin);
+    }
     printf("Masukkan durasi menginap (hari): ");
     int durasi;
     scanf("%d", &durasi);

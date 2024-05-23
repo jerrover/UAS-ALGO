@@ -128,18 +128,15 @@ void pesanTiket() {
     printf("\nSilakan pilih hotel dari daftar di atas (masukkan nomor hotel):\n");
     printf("\nMasukkan nomor hotel: ");
     int nomor_terpilih;
-    scanf("%d", &nomor_terpilih);
-
-    if (nomor_terpilih < 1 || nomor_terpilih > jumlah_hotel) {
-        printf("Nomor hotel tidak valid.\n");
-        return;
+    while (scanf("%d", &nomor_terpilih) && (nomor_terpilih < 1 || nomor_terpilih > jumlah_hotel)) {
+        printf("Nomor hotel tidak valid. Silakan masukkan nomor hotel: ");
     }
-
     file = fopen(FILE_HOTEL, "r");
     if (file == NULL) {
         printf("Gagal membuka file hotel.\n");
         return;
     }
+    
     for (int i = 1; i <= nomor_terpilih; i++) {
         fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga);
     }
@@ -157,7 +154,7 @@ void pesanTiket() {
     tiket.jumlah_kamar = jumlah_kamar;
 
     push(tiket); 
-    printf("\nTiket berhasil dipesan.\n");
+    printf("\nTiket berhasil dipesan.\n\n");
 }
 
 void lihatTiket() {
@@ -462,7 +459,7 @@ void batalkanPesan() {
         }
         fclose(file);
 
-        printf("Pesanan terakhir berhasil dibatalkan.\n");
+        printf("Pesanan terakhir berhasil dibatalkan.\n\n");
     } else {
         printf("Tidak ada pesanan yang bisa dibatalkan.\n");
     }

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX_TIKET 100
 #define MAX_NAMA_HOTEL 100
@@ -68,7 +69,7 @@ void insertNode(struct TreeNode **node, struct Tiket tiket) {
     if (*node == NULL) {
         *node = createNode(tiket);
     } else {
-        if (strcmp(tiket.hotel.nama_hotel, (*node)->tiket.hotel.nama_hotel) < 0) {
+        if (strcmp(tiket.tanggal_checkin, (*node)->tiket.tanggal_checkin) < 0) {
             insertNode(&((*node)->left), tiket);
         } else {
             insertNode(&((*node)->right), tiket);
@@ -87,6 +88,38 @@ void push(struct Tiket tiket) {
     long int hargaNumerik = konversiHarga(tiket.hotel.harga);
     fprintf(file, "%s#%s#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin, tiket.durasi,
             tiket.jumlah_tamu, tiket.jumlah_kamar, hargaNumerik);
+    fclose(file);
+}
+
+struct TreeNode* cariTiket(struct TreeNode *node, const char *tanggal_checkin) {
+    if (node == NULL) {
+        return NULL;
+    }
+    int cmp = strcmp(tanggal_checkin, node->tiket.tanggal_checkin);
+    if (cmp == 0) {
+        return node;
+    } else if (cmp < 0) {
+        return cariTiket(node->left, tanggal_checkin);
+    } else {
+        return cariTiket(node->right, tanggal_checkin);
+    }
+}
+
+void loadPesananToBST() {
+    FILE *file = fopen(FILE_PESANAN, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file pesanan.\n\n");
+        return;
+    }
+
+    struct Tiket tiket;
+    long int hargaNumerik;
+    while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
+                  &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
+        sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
+        insertNode(&root, tiket);
+    }
+
     fclose(file);
 }
 
@@ -158,9 +191,10 @@ void pesanTiket() {
         return;
     }
 
-    for (int i = 1; i <= nomor_terpilih; i++) {
+    for (int i = 0; i < nomor_terpilih-1; i++) {
         fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga);
     }
+    fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga);
     fclose(file);
 
     struct Tiket tiket;
@@ -185,13 +219,13 @@ void lihatTiket() {
         return;
     }
 
-    printf("------------------------------------------------------------------------------------------------------------\n");
+    printf("------------------------------------------------------------------------------------------------------------------\n");
     printf("| No |              Nama Hotel             | Tanggal Check-in | Durasi | Tamu | Kamar |        Harga       |\n");
-    printf("------------------------------------------------------------------------------------------------------------\n");
+    printf("------------------------------------------------------------------------------------------------------------------\n");
 
     int nomor_pesanan = 1;
     struct Tiket pesanan;
-    while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%s\n", pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
+    while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%[^\n]\n", pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
                   &pesanan.durasi, &pesanan.jumlah_tamu, &pesanan.jumlah_kamar, pesanan.hotel.harga) != EOF) {
 
         long int hargaNumerik = konversiHarga(pesanan.hotel.harga);
@@ -202,247 +236,170 @@ void lihatTiket() {
         nomor_pesanan++;
     }
 
-    printf("------------------------------------------------------------------------------------------------------------\n\n");
+    printf("------------------------------------------------------------------------------------------------------------------\n\n");
 
     fclose(file);
-}
 
-
-
-void lihatHotel() {
-    int pilihan;
-    printf("\nPilih opsi:\n");
-    printf("1. Lihat Hotel Berdasarkan Harga Tertinggi\n");
-    printf("2. Lihat Hotel Berdasarkan Harga Terendah\n");
-    printf("3. Urutkan Hotel Berdasarkan Rating Tertinggi\n");
-    printf("4. Urutkan Hotel Berdasarkan Rating Terendah\n");
-    printf("5. Urutkan Hotel Berdasarkan Bintang Terkecil\n");
-    printf("6. Urutkan Hotel Berdasarkan Bintang Terbesar\n");
-    printf("7. Lihat Hotel Berdasarkan Tipe Penginapan\n");
-    printf("8. Kembali\n");
-    printf("Pilihan Anda: ");
-    scanf("%d", &pilihan);
-
-    switch (pilihan) {
-        case 1:
-            lihatHotelBerdasarkanHarga('T');
+    while (1) {
+        printf("Masukkan tanggal check-in yang ingin dicari (dd/mm/yyyy) atau 0 untuk kembali: ");
+        char tanggal_checkin[20];
+        scanf("%19s", tanggal_checkin);
+        if (strcmp(tanggal_checkin, "0") == 0) {
             break;
-        case 2:
-            lihatHotelBerdasarkanHarga('K');
-            break;
-        case 3:
-            urutHotelBerdasarkanRating('T');
-            break;
-        case 4:
-            urutHotelBerdasarkanRating('K');
-            break;
-        case 5:
-            urutHotelBerdasarkanBintang('K');
-            break;
-        case 6:
-            urutHotelBerdasarkanBintang('T');
-            break;
-        case 7:
-            lihatHotelBerdasarkanTipe();
-            break;
-        case 8:
-            printf("\n");
-            break;
-        default:
-            printf("Pilihan tidak valid.\n");
-    }
-}
+        }
 
-void lihatHotelBerdasarkanTipe() {
-    char tipe;
-    printf("\nPilih tipe penginapan (H = Hotel, A = Apartemen, G = Guest House): ");
-    scanf(" %c", &tipe);
-
-    FILE *file = fopen(FILE_HOTEL, "r");
-    if (file == NULL) {
-        printf("Gagal membuka file hotel.\n");
-        return;
-    }
-
-    struct Hotel hotels[MAX_TIKET];
-    int jumlah_hotel = 0;
-
-    char nama_hotel[MAX_NAMA_HOTEL];
-    char bintang_hotel;
-    float rating;
-    char jenis_penginapan;
-    char harga[20];
-
-    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
-        if (jenis_penginapan == tipe) {
-            strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
-            hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
-            hotels[jumlah_hotel].rating = rating;
-            hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
-            strcpy(hotels[jumlah_hotel].harga, harga);
-            jumlah_hotel++;
+        struct TreeNode *node = cariTiket(root, tanggal_checkin);
+        if (node != NULL) {
+            long int hargaNumerik = konversiHarga(node->tiket.hotel.harga);
+            hargaNumerik *= node->tiket.jumlah_kamar * node->tiket.durasi;
+            printf("\nDetail Pemesanan Ditemukan:\n");
+            printf("-------------------------------------------------------------------------------------------------------\n");
+            printf("|              Nama Hotel             | Tanggal Check-in | Durasi | Tamu | Kamar |        Harga       |\n");
+            printf("-------------------------------------------------------------------------------------------------------\n");
+            printf("| %-35s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", node->tiket.hotel.nama_hotel, node->tiket.tanggal_checkin,
+                   node->tiket.durasi, node->tiket.jumlah_tamu, node->tiket.jumlah_kamar, hargaNumerik);
+            printf("-------------------------------------------------------------------------------------------------------\n\n");
+        } else {
+            printf("Pesanan dengan tanggal %s tidak ditemukan. Silakan coba lagi.\n", tanggal_checkin);
         }
     }
-
-    fclose(file);
-
-    printf("\nDaftar Hotel Berdasarkan Tipe Penginapan '%c':\n", tipe);
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
-    for (int i = 0; i < jumlah_hotel; i++) {
-        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
-               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
-    }
 }
 
-
-void urutHotelBerdasarkanBintang(char urutan) {
-    FILE *file = fopen(FILE_HOTEL, "r");
-    if (file == NULL) {
-        printf("Gagal membuka file hotel.\n");
-        return;
+struct TreeNode* findMin(struct TreeNode* node) {
+    while (node->left != NULL) {
+        node = node->left;
     }
+    return node;
+}
 
-    struct Hotel hotels[MAX_TIKET];
-    int jumlah_hotel = 0;
+struct TreeNode* deleteNode(struct TreeNode* root, const char* tanggal_checkin) {
+    if (root == NULL) return root;
 
-    char nama_hotel[MAX_NAMA_HOTEL];
-    char bintang_hotel;
-    float rating;
-    char jenis_penginapan;
-    char harga[20];
-     while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
-        strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
-        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
-        hotels[jumlah_hotel].rating = rating;
-        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
-        strcpy(hotels[jumlah_hotel].harga, harga);
-        jumlah_hotel++;
-    }
-
-    fclose(file);
-
-    if (urutan == 'T') {
-        printf("\nDaftar Hotel Berdasarkan Bintang Terbesar:\n");
+    int cmp = strcmp(tanggal_checkin, root->tiket.tanggal_checkin);
+    if (cmp < 0) {
+        root->left = deleteNode(root->left, tanggal_checkin);
+    } else if (cmp > 0) {
+        root->right = deleteNode(root->right, tanggal_checkin);
     } else {
-        printf("\nDaftar Hotel Berdasarkan Bintang Terkecil:\n");
+        if (root->left == NULL) {
+            struct TreeNode* temp = root->right;
+            free(root);
+            return temp;
+        } else if (root->right == NULL) {
+            struct TreeNode* temp = root->left;
+            free(root);
+            return temp;
+        }
+
+        struct TreeNode* temp = findMin(root->right);
+        root->tiket = temp->tiket;
+        root->right = deleteNode(root->right, temp->tiket.tanggal_checkin);
+    }
+    return root;
+}
+
+// Menambahkan fungsi untuk mengurutkan tiket berdasarkan tanggal check-in menggunakan heap
+struct Tiket heap[MAX_TIKET];
+int heapSize = 0;
+
+void heapifyDown(int idx) {
+    int left = 2 * idx + 1;
+    int right = 2 * idx + 2;
+    int smallest = idx;
+
+    if (left < heapSize && strcmp(heap[left].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+        smallest = left;
     }
 
-    for (int i = 0; i < jumlah_hotel - 1; i++) {
-        for (int j = i + 1; j < jumlah_hotel; j++) {
-            if ((urutan == 'T' && hotels[i].bintang_hotel < hotels[j].bintang_hotel) ||
-                (urutan == 'K' && hotels[i].bintang_hotel > hotels[j].bintang_hotel)) {
-                struct Hotel temp = hotels[i];
-                hotels[i] = hotels[j];
-                hotels[j] = temp;
-            }
-        }
+    if (right < heapSize && strcmp(heap[right].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+        smallest = right;
     }
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
-    for (int i = 0; i < jumlah_hotel; i++) {
-        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
-               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
+
+    if (smallest != idx) {
+        struct Tiket temp = heap[idx];
+        heap[idx] = heap[smallest];
+        heap[smallest] = temp;
+        heapifyDown(smallest);
     }
 }
 
-void lihatHotelBerdasarkanHarga(char urutan) {
-    FILE *file = fopen(FILE_HOTEL, "r");
-    if (file == NULL) {
-        printf("Gagal membuka file hotel.\n");
-        return;
-    }
-    struct Hotel hotels[MAX_TIKET];
-    int jumlah_hotel = 0;
+void heapifyUp(int idx) {
+    int parent = (idx - 1) / 2;
 
-    char nama_hotel[MAX_NAMA_HOTEL];
-    char bintang_hotel;
-    float rating;
-    char jenis_penginapan;
-    char harga[20];
-
-    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
-        strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
-        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
-        hotels[jumlah_hotel].rating = rating;
-        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
-        strcpy(hotels[jumlah_hotel].harga, harga);
-        jumlah_hotel++;
-    }
-
-    fclose(file);
-
-    for (int i = 0; i < jumlah_hotel - 1; i++) {
-        for (int j = i + 1; j < jumlah_hotel; j++) {
-            long int harga_i = konversiHarga(hotels[i].harga);
-            long int harga_j = konversiHarga(hotels[j].harga);
-            if ((urutan == 'T' && harga_i < harga_j) ||
-                (urutan == 'K' && harga_i > harga_j)) {
-                struct Hotel temp = hotels[i];
-                hotels[i] = hotels[j];
-                hotels[j] = temp;
-            }
-        }
-    }
-
-    if (urutan == 'T') {
-             printf("\nDaftar Hotel Berdasarkan Harga Tertinggi:\n");
-    } else {
-        printf("\nDaftar Hotel Berdasarkan Harga Terendah:\n");
-    }
-
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
-    for (int i = 0; i < jumlah_hotel; i++) {
-        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
-               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
+    if (parent >= 0 && strcmp(heap[idx].tanggal_checkin, heap[parent].tanggal_checkin) < 0) {
+        struct Tiket temp = heap[idx];
+        heap[idx] = heap[parent];
+        heap[parent] = temp;
+        heapifyUp(parent);
     }
 }
 
-void urutHotelBerdasarkanRating(char urutan) {
-    FILE *file = fopen(FILE_HOTEL, "r");
-    if (file == NULL) {
-        printf("Gagal membuka file hotel.\n");
+void insertHeap(struct Tiket tiket) {
+    heap[heapSize] = tiket;
+    heapSize++;
+    heapifyUp(heapSize - 1);
+}
+
+struct Tiket extractMin() {
+    struct Tiket rootTiket = heap[0];
+    heap[0] = heap[heapSize - 1];
+    heapSize--;
+    heapifyDown(0);
+    return rootTiket;
+}
+
+void deleteFromHeap(int idx) {
+    if (idx < 0 || idx >= heapSize) {
+        printf("Indeks tidak valid.\n");
         return;
     }
 
-    struct Hotel hotels[MAX_TIKET];
-    int jumlah_hotel = 0;
+    heap[idx] = heap[heapSize - 1];
+    heapSize--;
 
-    char nama_hotel[MAX_NAMA_HOTEL];
-    char bintang_hotel;
-    float rating;
-    char jenis_penginapan;
-    char harga[20];
-     while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
-        strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
-        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
-        hotels[jumlah_hotel].rating = rating;
-        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
-        strcpy(hotels[jumlah_hotel].harga, harga);
-        jumlah_hotel++;
+    // Re-heapify downwards or upwards as needed
+    heapifyDown(idx);
+    heapifyUp(idx);
+}
+
+void loadPesananToHeap() {
+    FILE *file = fopen(FILE_PESANAN, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file pesanan.\n\n");
+        return;
+    }
+
+    struct Tiket tiket;
+    long int hargaNumerik;
+    while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
+                  &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
+        sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
+        insertHeap(tiket);
     }
 
     fclose(file);
+}
 
-    if (urutan == 'T') {
-        printf("\nDaftar Hotel Berdasarkan Rating Tertinggi:\n");
-    } else {
-        printf("\nDaftar Hotel Berdasarkan Rating Terendah:\n");
+void lihatTiketTerurut() {
+    loadPesananToHeap();
+
+    printf("------------------------------------------------------------------------------------------------------------------\n");
+    printf("| No |              Nama Hotel             | Tanggal Check-in | Durasi | Tamu | Kamar |        Harga       |\n");
+    printf("------------------------------------------------------------------------------------------------------------------\n");
+
+    int nomor_pesanan = 1;
+    while (heapSize > 0) {
+        struct Tiket pesanan = extractMin();
+
+        long int hargaNumerik = konversiHarga(pesanan.hotel.harga);
+        hargaNumerik *= pesanan.jumlah_kamar * pesanan.durasi;
+
+        printf("| %-2d | %-35s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", nomor_pesanan, pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
+               pesanan.durasi, pesanan.jumlah_tamu, pesanan.jumlah_kamar, hargaNumerik);
+        nomor_pesanan++;
     }
 
-    for (int i = 0; i < jumlah_hotel - 1; i++) {
-        for (int j = i + 1; j < jumlah_hotel; j++) {
-            if ((urutan == 'T' && hotels[i].rating < hotels[j].rating) ||
-                (urutan == 'K' && hotels[i].rating > hotels[j].rating)) {
-                struct Hotel temp = hotels[i];
-                hotels[i] = hotels[j];
-                hotels[j] = temp;
-            }
-        }
-    }
-    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
-    for (int i = 0; i < jumlah_hotel; i++) {
-        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
-               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
-    }
+    printf("------------------------------------------------------------------------------------------------------------------\n\n");
 }
 
 void batalkanPesan() {
@@ -508,6 +465,22 @@ void batalkanPesan() {
             }
             fclose(file);
 
+            // Hapus dari BST
+            root = deleteNode(root, pesanan[nomor - 1].tanggal_checkin);
+
+            // Hapus dari heap
+            // Cari indeks tiket yang ingin dihapus di heap
+            int heapIndex = -1;
+            for (int i = 0; i < heapSize; i++) {
+                if (strcmp(heap[i].tanggal_checkin, pesanan[nomor - 1].tanggal_checkin) == 0) {
+                    heapIndex = i;
+                    break;
+                }
+            }
+            if (heapIndex != -1) {
+                deleteFromHeap(heapIndex); // Hapus dari heap
+            }
+
             printf("Pesanan nomor %d berhasil dibatalkan.\n", nomor);
         }
     } else {
@@ -522,7 +495,249 @@ void freeMemoryBST(struct TreeNode *node) {
         free(node); 
     }
 }
+
+void lihatHotelBerdasarkanHarga(char urutan);
+void urutHotelBerdasarkanRating(char urutan);
+void urutHotelBerdasarkanBintang(char urutan);
+void lihatHotelBerdasarkanTipe();
+
+void lihatHotel() {
+    int pilihan;
+    printf("\nPilih opsi:\n");
+    printf("1. Lihat Hotel Berdasarkan Harga Tertinggi\n");
+    printf("2. Lihat Hotel Berdasarkan Harga Terendah\n");
+    printf("3. Urutkan Hotel Berdasarkan Rating Tertinggi\n");
+    printf("4. Urutkan Hotel Berdasarkan Rating Terendah\n");
+    printf("5. Urutkan Hotel Berdasarkan Bintang Terkecil\n");
+    printf("6. Urutkan Hotel Berdasarkan Bintang Terbesar\n");
+    printf("7. Lihat Hotel Berdasarkan Tipe Penginapan\n");
+    printf("8. Kembali\n");
+    printf("Pilihan Anda: ");
+    scanf("%d", &pilihan);
+
+    switch (pilihan) {
+        case 1:
+            lihatHotelBerdasarkanHarga('T');
+            break;
+        case 2:
+            lihatHotelBerdasarkanHarga('K');
+            break;
+        case 3:
+            urutHotelBerdasarkanRating('T');
+            break;
+        case 4:
+            urutHotelBerdasarkanRating('K');
+            break;
+        case 5:
+            urutHotelBerdasarkanBintang('K');
+            break;
+        case 6:
+            urutHotelBerdasarkanBintang('T');
+            break;
+        case 7:
+            lihatHotelBerdasarkanTipe();
+            break;
+        case 8:
+            printf("\n");
+            break;
+        default:
+            printf("Pilihan tidak valid.\n");
+    }
+}
+
+void lihatHotelBerdasarkanHarga(char urutan) {
+    FILE *file = fopen(FILE_HOTEL, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file hotel.\n");
+        return;
+    }
+    struct Hotel hotels[MAX_TIKET];
+    int jumlah_hotel = 0;
+
+    char nama_hotel[MAX_NAMA_HOTEL];
+    char bintang_hotel;
+    float rating;
+    char jenis_penginapan;
+    char harga[20];
+
+    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
+        strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
+        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
+        hotels[jumlah_hotel].rating = rating;
+        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
+        strcpy(hotels[jumlah_hotel].harga, harga);
+        jumlah_hotel++;
+    }
+
+    fclose(file);
+
+    for (int i = 0; i < jumlah_hotel - 1; i++) {
+        for (int j = i + 1; j < jumlah_hotel; j++) {
+            long int harga_i = konversiHarga(hotels[i].harga);
+            long int harga_j = konversiHarga(hotels[j].harga);
+            if ((urutan == 'T' && harga_i < harga_j) ||
+                (urutan == 'K' && harga_i > harga_j)) {
+                struct Hotel temp = hotels[i];
+                hotels[i] = hotels[j];
+                hotels[j] = temp;
+            }
+        }
+    }
+
+    if (urutan == 'T') {
+        printf("\nDaftar Hotel Berdasarkan Harga Tertinggi:\n");
+    } else {
+        printf("\nDaftar Hotel Berdasarkan Harga Terendah:\n");
+    }
+
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
+    for (int i = 0; i < jumlah_hotel; i++) {
+        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
+               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
+    }
+}
+
+void urutHotelBerdasarkanRating(char urutan) {
+    FILE *file = fopen(FILE_HOTEL, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file hotel.\n");
+        return;
+    }
+
+    struct Hotel hotels[MAX_TIKET];
+    int jumlah_hotel = 0;
+
+    char nama_hotel[MAX_NAMA_HOTEL];
+    char bintang_hotel;
+    float rating;
+    char jenis_penginapan;
+    char harga[20];
+    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
+        strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
+        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
+        hotels[jumlah_hotel].rating = rating;
+        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
+        strcpy(hotels[jumlah_hotel].harga, harga);
+        jumlah_hotel++;
+    }
+
+    fclose(file);
+
+    if (urutan == 'T') {
+        printf("\nDaftar Hotel Berdasarkan Rating Tertinggi:\n");
+    } else {
+        printf("\nDaftar Hotel Berdasarkan Rating Terendah:\n");
+    }
+
+    for (int i = 0; i < jumlah_hotel - 1; i++) {
+        for (int j = i + 1; j < jumlah_hotel; j++) {
+            if ((urutan == 'T' && hotels[i].rating < hotels[j].rating) ||
+                (urutan == 'K' && hotels[i].rating > hotels[j].rating)) {
+                struct Hotel temp = hotels[i];
+                hotels[i] = hotels[j];
+                hotels[j] = temp;
+            }
+        }
+    }
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
+    for (int i = 0; i < jumlah_hotel; i++) {
+        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
+               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
+    }
+}
+
+void urutHotelBerdasarkanBintang(char urutan) {
+    FILE *file = fopen(FILE_HOTEL, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file hotel.\n");
+        return;
+    }
+
+    struct Hotel hotels[MAX_TIKET];
+    int jumlah_hotel = 0;
+
+    char nama_hotel[MAX_NAMA_HOTEL];
+    char bintang_hotel;
+    float rating;
+    char jenis_penginapan;
+    char harga[20];
+    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
+        strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
+        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
+        hotels[jumlah_hotel].rating = rating;
+        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
+        strcpy(hotels[jumlah_hotel].harga, harga);
+        jumlah_hotel++;
+    }
+
+    fclose(file);
+
+    if (urutan == 'T') {
+        printf("\nDaftar Hotel Berdasarkan Bintang Terbesar:\n");
+    } else {
+        printf("\nDaftar Hotel Berdasarkan Bintang Terkecil:\n");
+    }
+
+    for (int i = 0; i < jumlah_hotel - 1; i++) {
+        for (int j = i + 1; j < jumlah_hotel; j++) {
+            if ((urutan == 'T' && hotels[i].bintang_hotel < hotels[j].bintang_hotel) ||
+                (urutan == 'K' && hotels[i].bintang_hotel > hotels[j].bintang_hotel)) {
+                struct Hotel temp = hotels[i];
+                hotels[i] = hotels[j];
+                hotels[j] = temp;
+            }
+        }
+    }
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
+    for (int i = 0; i < jumlah_hotel; i++) {
+        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
+               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
+    }
+}
+
+void lihatHotelBerdasarkanTipe() {
+    char tipe;
+    printf("\nPilih tipe penginapan (H = Hotel, A = Apartemen, G = Guest House): ");
+    scanf(" %c", &tipe);
+
+    FILE *file = fopen(FILE_HOTEL, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file hotel.\n");
+        return;
+    }
+    struct Hotel hotels[MAX_TIKET];
+    int jumlah_hotel = 0;
+
+    char nama_hotel[MAX_NAMA_HOTEL];
+    char bintang_hotel;
+    float rating;
+    char jenis_penginapan;
+    char harga[20];
+
+    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
+        if (jenis_penginapan == tipe) {
+            strcpy(hotels[jumlah_hotel].nama_hotel, nama_hotel);
+            hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
+            hotels[jumlah_hotel].rating = rating;
+            hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
+            strcpy(hotels[jumlah_hotel].harga, harga);
+            jumlah_hotel++;
+        }
+    }
+
+    fclose(file);
+
+    printf("\nDaftar Hotel Berdasarkan Tipe Penginapan '%c':\n", tipe);
+    printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
+    for (int i = 0; i < jumlah_hotel; i++) {
+        printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
+               hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
+    }
+}
+
 int main() {
+    loadPesananToBST(); // Load existing orders into the BST
+
     int pilihan;
     do {
         printf("------------------------------------------------------------------------------------------------------------\n");
@@ -533,7 +748,8 @@ int main() {
         printf("2. Lihat Tiket\n");
         printf("3. Batalkan Pesanan\n");
         printf("4. Lihat Hotel\n");
-        printf("5. Keluar\n");
+        printf("5. Lihat Tiket Terurut Berdasarkan Tanggal Check-in\n"); // Tambahkan opsi ini
+        printf("6. Keluar\n");
         printf("Pilihan Anda: ");
         scanf("%d", &pilihan);
 
@@ -551,13 +767,16 @@ int main() {
                 lihatHotel();
                 break;
             case 5:
+                lihatTiketTerurut(); // Tambahkan opsi ini
+                break;
+            case 6:
                 printf("Keluar dari program.\n");
                 break;
             default:
                 printf("Pilihan tidak valid.\n");
         }
-    } while (pilihan != 5);
-        freeMemoryBST(root);
+    } while (pilihan != 6);
+    freeMemoryBST(root);
 
     return 0;
 }

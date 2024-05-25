@@ -545,6 +545,34 @@ void lihatHotel() {
     }
 }
 
+void swap(struct Hotel *a, struct Hotel *b) {
+    struct Hotel temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+// Quick Sort untuk pengurutan berdasarkan harga
+int partition(struct Hotel arr[], int low, int high) {
+    long int pivot = konversiHarga(arr[high].harga);
+    int i = low - 1;
+    for (int j = low; j < high; j++) {
+        if (konversiHarga(arr[j].harga) > pivot) {
+            i++;
+            swap(&arr[i], &arr[j]);
+        }
+    }
+    swap(&arr[i + 1], &arr[high]);
+    return i + 1;
+}
+
+void quickSort(struct Hotel arr[], int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
 void lihatHotelBerdasarkanHarga(char urutan) {
     FILE *file = fopen(FILE_HOTEL, "r");
     if (file == NULL) {
@@ -571,29 +599,39 @@ void lihatHotelBerdasarkanHarga(char urutan) {
 
     fclose(file);
 
-    for (int i = 0; i < jumlah_hotel - 1; i++) {
-        for (int j = i + 1; j < jumlah_hotel; j++) {
-            long int harga_i = konversiHarga(hotels[i].harga);
-            long int harga_j = konversiHarga(hotels[j].harga);
-            if ((urutan == 'T' && harga_i < harga_j) ||
-                (urutan == 'K' && harga_i > harga_j)) {
-                struct Hotel temp = hotels[i];
-                hotels[i] = hotels[j];
-                hotels[j] = temp;
-            }
-        }
-    }
-
     if (urutan == 'T') {
+        quickSort(hotels, 0, jumlah_hotel - 1);
         printf("\nDaftar Hotel Berdasarkan Harga Tertinggi:\n");
     } else {
         printf("\nDaftar Hotel Berdasarkan Harga Terendah:\n");
+        for (int i = 0; i < jumlah_hotel - 1; i++) {
+            for (int j = i + 1; j < jumlah_hotel; j++) {
+                long int harga_i = konversiHarga(hotels[i].harga);
+                long int harga_j = konversiHarga(hotels[j].harga);
+                if (harga_i > harga_j) {
+                    struct Hotel temp = hotels[i];
+                    hotels[i] = hotels[j];
+                    hotels[j] = temp;
+                }
+            }
+        }
     }
 
     printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
     for (int i = 0; i < jumlah_hotel; i++) {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
                hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
+    }
+}
+
+// Bubble Sort untuk pengurutan berdasarkan rating
+void bubbleSort(struct Hotel arr[], int n, char urutan) {
+    for (int i = 0; i < n-1; i++) {
+        for (int j = 0; j < n-i-1; j++) {
+            if ((urutan == 'T' && arr[j].rating < arr[j+1].rating) || (urutan == 'K' && arr[j].rating > arr[j+1].rating)) {
+                swap(&arr[j], &arr[j+1]);
+            }
+        }
     }
 }
 
@@ -629,16 +667,8 @@ void urutHotelBerdasarkanRating(char urutan) {
         printf("\nDaftar Hotel Berdasarkan Rating Terendah:\n");
     }
 
-    for (int i = 0; i < jumlah_hotel - 1; i++) {
-        for (int j = i + 1; j < jumlah_hotel; j++) {
-            if ((urutan == 'T' && hotels[i].rating < hotels[j].rating) ||
-                (urutan == 'K' && hotels[i].rating > hotels[j].rating)) {
-                struct Hotel temp = hotels[i];
-                hotels[i] = hotels[j];
-                hotels[j] = temp;
-            }
-        }
-    }
+    bubbleSort(hotels, jumlah_hotel, urutan);
+
     printf("%-5s %-35s %-10s %-7s %-14s %s\n", "No", "Nama", "Bintang", "Rating", "Jenis", "Harga per malam");
     for (int i = 0; i < jumlah_hotel; i++) {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,

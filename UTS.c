@@ -298,6 +298,110 @@ struct TreeNode* deleteNode(struct TreeNode* root, const char* tanggal_checkin) 
     return root;
 }
 
+// Menambahkan fungsi untuk mengurutkan tiket berdasarkan tanggal check-in menggunakan heap
+struct Tiket heap[MAX_TIKET];
+int heapSize = 0;
+
+void heapifyDown(int idx) {
+    int left = 2 * idx + 1;
+    int right = 2 * idx + 2;
+    int smallest = idx;
+
+    if (left < heapSize && strcmp(heap[left].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+        smallest = left;
+    }
+
+    if (right < heapSize && strcmp(heap[right].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+        smallest = right;
+    }
+
+    if (smallest != idx) {
+        struct Tiket temp = heap[idx];
+        heap[idx] = heap[smallest];
+        heap[smallest] = temp;
+        heapifyDown(smallest);
+    }
+}
+
+void heapifyUp(int idx) {
+    int parent = (idx - 1) / 2;
+
+    if (parent >= 0 && strcmp(heap[idx].tanggal_checkin, heap[parent].tanggal_checkin) < 0) {
+        struct Tiket temp = heap[idx];
+        heap[idx] = heap[parent];
+        heap[parent] = temp;
+        heapifyUp(parent);
+    }
+}
+
+void insertHeap(struct Tiket tiket) {
+    heap[heapSize] = tiket;
+    heapSize++;
+    heapifyUp(heapSize - 1);
+}
+
+struct Tiket extractMin() {
+    struct Tiket rootTiket = heap[0];
+    heap[0] = heap[heapSize - 1];
+    heapSize--;
+    heapifyDown(0);
+    return rootTiket;
+}
+
+void deleteFromHeap(int idx) {
+    if (idx < 0 || idx >= heapSize) {
+        printf("Indeks tidak valid.\n");
+        return;
+    }
+
+    heap[idx] = heap[heapSize - 1];
+    heapSize--;
+
+    // Re-heapify downwards or upwards as needed
+    heapifyDown(idx);
+    heapifyUp(idx);
+}
+
+void loadPesananToHeap() {
+    FILE *file = fopen(FILE_PESANAN, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file pesanan.\n\n");
+        return;
+    }
+
+    struct Tiket tiket;
+    long int hargaNumerik;
+    while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
+                  &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
+        sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
+        insertHeap(tiket);
+    }
+
+    fclose(file);
+}
+
+void lihatTiketTerurut() {
+    loadPesananToHeap();
+
+    printf("------------------------------------------------------------------------------------------------------------------\n");
+    printf("| No |              Nama Hotel             | Tanggal Check-in | Durasi | Tamu | Kamar |        Harga       |\n");
+    printf("------------------------------------------------------------------------------------------------------------------\n");
+
+    int nomor_pesanan = 1;
+    while (heapSize > 0) {
+        struct Tiket pesanan = extractMin();
+
+        long int hargaNumerik = konversiHarga(pesanan.hotel.harga);
+        hargaNumerik *= pesanan.jumlah_kamar * pesanan.durasi;
+
+        printf("| %-2d | %-35s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", nomor_pesanan, pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
+               pesanan.durasi, pesanan.jumlah_tamu, pesanan.jumlah_kamar, hargaNumerik);
+        nomor_pesanan++;
+    }
+
+    printf("------------------------------------------------------------------------------------------------------------------\n\n");
+}
+
 void batalkanPesan() {
     FILE *file = fopen(FILE_PESANAN, "r");
     if (file == NULL) {
@@ -361,7 +465,22 @@ void batalkanPesan() {
             }
             fclose(file);
 
-            root = deleteNode(root, pesanan[nomor - 1].tanggal_checkin); // Delete from BST
+            // Hapus dari BST
+            root = deleteNode(root, pesanan[nomor - 1].tanggal_checkin);
+
+            // Hapus dari heap
+            // Cari indeks tiket yang ingin dihapus di heap
+            int heapIndex = -1;
+            for (int i = 0; i < heapSize; i++) {
+                if (strcmp(heap[i].tanggal_checkin, pesanan[nomor - 1].tanggal_checkin) == 0) {
+                    heapIndex = i;
+                    break;
+                }
+            }
+            if (heapIndex != -1) {
+                deleteFromHeap(heapIndex); // Hapus dari heap
+            }
+
             printf("Pesanan nomor %d berhasil dibatalkan.\n", nomor);
         }
     } else {
@@ -614,96 +733,6 @@ void lihatHotelBerdasarkanTipe() {
         printf("%-5d %-35s %-10c %-7.1f %-14s Rp %s\n", i + 1, hotels[i].nama_hotel, hotels[i].bintang_hotel, hotels[i].rating,
                hotels[i].jenis_penginapan == 'H' ? "Hotel" : (hotels[i].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[i].harga);
     }
-}
-
-// Menambahkan fungsi untuk mengurutkan tiket berdasarkan tanggal check-in menggunakan heap
-struct Tiket heap[MAX_TIKET];
-int heapSize = 0;
-
-void heapifyDown(int idx) {
-    int left = 2 * idx + 1;
-    int right = 2 * idx + 2;
-    int smallest = idx;
-
-    if (left < heapSize && strcmp(heap[left].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
-        smallest = left;
-    }
-
-    if (right < heapSize && strcmp(heap[right].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
-        smallest = right;
-    }
-
-    if (smallest != idx) {
-        struct Tiket temp = heap[idx];
-        heap[idx] = heap[smallest];
-        heap[smallest] = temp;
-        heapifyDown(smallest);
-    }
-}
-
-void heapifyUp(int idx) {
-    int parent = (idx - 1) / 2;
-
-    if (parent >= 0 && strcmp(heap[idx].tanggal_checkin, heap[parent].tanggal_checkin) < 0) {
-        struct Tiket temp = heap[idx];
-        heap[idx] = heap[parent];
-        heap[parent] = temp;
-        heapifyUp(parent);
-    }
-}
-
-void insertHeap(struct Tiket tiket) {
-    heap[heapSize] = tiket;
-    heapSize++;
-    heapifyUp(heapSize - 1);
-}
-
-struct Tiket extractMin() {
-    struct Tiket rootTiket = heap[0];
-    heap[0] = heap[heapSize - 1];
-    heapSize--;
-    heapifyDown(0);
-    return rootTiket;
-}
-
-void loadPesananToHeap() {
-    FILE *file = fopen(FILE_PESANAN, "r");
-    if (file == NULL) {
-        printf("Gagal membuka file pesanan.\n\n");
-        return;
-    }
-
-    struct Tiket tiket;
-    long int hargaNumerik;
-    while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
-                  &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
-        sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
-        insertHeap(tiket);
-    }
-
-    fclose(file);
-}
-
-void lihatTiketTerurut() {
-    loadPesananToHeap();
-
-    printf("------------------------------------------------------------------------------------------------------------------\n");
-    printf("| No |              Nama Hotel             | Tanggal Check-in | Durasi | Tamu | Kamar |        Harga       |\n");
-    printf("------------------------------------------------------------------------------------------------------------------\n");
-
-    int nomor_pesanan = 1;
-    while (heapSize > 0) {
-        struct Tiket pesanan = extractMin();
-
-        long int hargaNumerik = konversiHarga(pesanan.hotel.harga);
-        hargaNumerik *= pesanan.jumlah_kamar * pesanan.durasi;
-
-        printf("| %-2d | %-35s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", nomor_pesanan, pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
-               pesanan.durasi, pesanan.jumlah_tamu, pesanan.jumlah_kamar, hargaNumerik);
-        nomor_pesanan++;
-    }
-
-    printf("------------------------------------------------------------------------------------------------------------------\n\n");
 }
 
 int main() {

@@ -32,8 +32,7 @@ long int konversiHarga(const char *harga) {
     if (harga[panjang - 1] == 'M') {
         faktor = 1000000;
         panjang--;
-    }
-    else if (harga[panjang - 1] == 'R') {
+    } else if (harga[panjang - 1] == 'R') {
         faktor = 100000;
         panjang--;
     }
@@ -52,8 +51,6 @@ struct TreeNode {
     struct TreeNode *left;
     struct TreeNode *right;
 };
-
-struct TreeNode *root = NULL;
 
 struct TreeNode* createNode(struct Tiket tiket) {
     struct TreeNode *newNode = (struct TreeNode *)malloc(sizeof(struct TreeNode));
@@ -77,8 +74,8 @@ void insertNode(struct TreeNode **node, struct Tiket tiket) {
     }
 }
 
-void push(struct Tiket tiket) {
-    insertNode(&root, tiket);
+void push(struct TreeNode **root, struct Tiket tiket) {
+    insertNode(root, tiket);
 
     FILE *file = fopen(FILE_PESANAN, "a");
     if (file == NULL) {
@@ -105,7 +102,7 @@ struct TreeNode* cariTiket(struct TreeNode *node, const char *tanggal_checkin) {
     }
 }
 
-void loadPesananToBST() {
+void loadPesananToBST(struct TreeNode **root) {
     FILE *file = fopen(FILE_PESANAN, "r");
     if (file == NULL) {
         printf("Gagal membuka file pesanan.\n\n");
@@ -117,13 +114,13 @@ void loadPesananToBST() {
     while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
                   &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
         sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
-        insertNode(&root, tiket);
+        insertNode(root, tiket);
     }
 
     fclose(file);
 }
 
-void pesanTiket() {
+void pesanTiket(struct TreeNode **root) {
     int jumlah_hotel = 0;
 
     FILE *file = fopen(FILE_HOTEL, "r");
@@ -191,7 +188,7 @@ void pesanTiket() {
         return;
     }
 
-    for (int i = 0; i < nomor_terpilih-1; i++) {
+    for (int i = 0; i < nomor_terpilih - 1; i++) {
         fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga);
     }
     fscanf(file, "%[^#]#%c#%f#%c#%s\n", nama_hotel, &bintang_hotel, &rating, &jenis_penginapan, harga);
@@ -208,11 +205,11 @@ void pesanTiket() {
     tiket.jumlah_tamu = jumlah_tamu;
     tiket.jumlah_kamar = jumlah_kamar;
 
-    push(tiket);
+    push(root, tiket);
     printf("\nTiket berhasil dipesan.\n\n");
 }
 
-void lihatTiket() {
+void lihatTiket(struct TreeNode *root) {
     FILE *file = fopen(FILE_PESANAN, "r");
     if (file == NULL) {
         printf("Gagal membuka file pesanan.\n\n");
@@ -402,7 +399,7 @@ void lihatTiketTerurut() {
     printf("------------------------------------------------------------------------------------------------------------------\n\n");
 }
 
-void batalkanPesan() {
+void batalkanPesan(struct TreeNode **root) {
     FILE *file = fopen(FILE_PESANAN, "r");
     if (file == NULL) {
         printf("Gagal membuka file pesanan.\n\n");
@@ -466,7 +463,7 @@ void batalkanPesan() {
             fclose(file);
 
             // Hapus dari BST
-            root = deleteNode(root, pesanan[nomor - 1].tanggal_checkin);
+            *root = deleteNode(*root, pesanan[nomor - 1].tanggal_checkin);
 
             // Hapus dari heap
             // Cari indeks tiket yang ingin dihapus di heap
@@ -511,7 +508,9 @@ void lihatHotel() {
     printf("5. Urutkan Hotel Berdasarkan Bintang Terkecil\n");
     printf("6. Urutkan Hotel Berdasarkan Bintang Terbesar\n");
     printf("7. Lihat Hotel Berdasarkan Tipe Penginapan\n");
-    printf("8. Kembali\n");
+    printf("8. Cari Hotel dengan Binary Search\n");
+    printf("9. Cari Hotel dengan Interpolation Search\n");
+    printf("10. Kembali\n");
     printf("Pilihan Anda: ");
     scanf("%d", &pilihan);
 
@@ -537,7 +536,21 @@ void lihatHotel() {
         case 7:
             lihatHotelBerdasarkanTipe();
             break;
-        case 8:
+        case 8: {
+            printf("Masukkan nama hotel yang ingin dicari: ");
+            char nama_hotel[MAX_NAMA_HOTEL];
+            scanf("%s", nama_hotel);
+            searchHotelBinary(nama_hotel);
+            break;
+        }
+        case 9: {
+            printf("Masukkan nama hotel yang ingin dicari: ");
+            char nama_hotel[MAX_NAMA_HOTEL];
+            scanf("%s", nama_hotel);
+            searchHotelInterpolation(nama_hotel);
+            break;
+        }
+        case 10:
             printf("\n");
             break;
         default:
@@ -765,8 +778,121 @@ void lihatHotelBerdasarkanTipe() {
     }
 }
 
+// Binary search
+int binarySearch(struct Hotel arr[], int l, int r, char *x) {
+    while (l <= r) {
+        int m = l + (r - l) / 2;
+        int res = strcmp(arr[m].nama_hotel, x);
+        if (res == 0)
+            return m;
+        if (res < 0)
+            l = m + 1;
+        else
+            r = m - 1;
+    }
+    return -1;
+}
+
+// Interpolation search
+int interpolationSearch(struct Hotel arr[], int n, char *x) {
+    int lo = 0, hi = (n - 1);
+    while (lo <= hi && strcmp(x, arr[lo].nama_hotel) >= 0 && strcmp(x, arr[hi].nama_hotel) <= 0) {
+        if (lo == hi) {
+            if (strcmp(arr[lo].nama_hotel, x) == 0)
+                return lo;
+            return -1;
+        }
+        int pos = lo + (((double)(hi - lo) /
+            (strcmp(arr[hi].nama_hotel, arr[lo].nama_hotel))) * (strcmp(x, arr[lo].nama_hotel)));
+        if (strcmp(arr[pos].nama_hotel, x) == 0)
+            return pos;
+        if (strcmp(arr[pos].nama_hotel, x) < 0)
+            lo = pos + 1;
+        else
+            hi = pos - 1;
+    }
+    return -1;
+}
+
+void searchHotelBinary(char *nama_hotel) {
+    FILE *file = fopen(FILE_HOTEL, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file hotel.\n");
+        return;
+    }
+    struct Hotel hotels[MAX_TIKET];
+    int jumlah_hotel = 0;
+
+    char name[MAX_NAMA_HOTEL];
+    char bintang_hotel;
+    float rating;
+    char jenis_penginapan;
+    char harga[20];
+
+    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", name, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
+        strcpy(hotels[jumlah_hotel].nama_hotel, name);
+        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
+        hotels[jumlah_hotel].rating = rating;
+        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
+        strcpy(hotels[jumlah_hotel].harga, harga);
+        jumlah_hotel++;
+    }
+
+    fclose(file);
+    
+    quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for binary search
+
+    int result = binarySearch(hotels, 0, jumlah_hotel - 1, nama_hotel);
+    if (result != -1) {
+        printf("Hotel ditemukan:\n");
+        printf("%-35s %-10c %-7.1f %-14s Rp %s\n", hotels[result].nama_hotel, hotels[result].bintang_hotel, hotels[result].rating,
+               hotels[result].jenis_penginapan == 'H' ? "Hotel" : (hotels[result].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[result].harga);
+    } else {
+        printf("Hotel tidak ditemukan.\n");
+    }
+}
+
+void searchHotelInterpolation(char *nama_hotel) {
+    FILE *file = fopen(FILE_HOTEL, "r");
+    if (file == NULL) {
+        printf("Gagal membuka file hotel.\n");
+        return;
+    }
+    struct Hotel hotels[MAX_TIKET];
+    int jumlah_hotel = 0;
+
+    char name[MAX_NAMA_HOTEL];
+    char bintang_hotel;
+    float rating;
+    char jenis_penginapan;
+    char harga[20];
+
+    while (fscanf(file, "%[^#]#%c#%f#%c#%s\n", name, &bintang_hotel, &rating, &jenis_penginapan, harga) != EOF) {
+        strcpy(hotels[jumlah_hotel].nama_hotel, name);
+        hotels[jumlah_hotel].bintang_hotel = bintang_hotel;
+        hotels[jumlah_hotel].rating = rating;
+        hotels[jumlah_hotel].jenis_penginapan = jenis_penginapan;
+        strcpy(hotels[jumlah_hotel].harga, harga);
+        jumlah_hotel++;
+    }
+
+    fclose(file);
+    
+    quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for interpolation search
+
+    int result = interpolationSearch(hotels, jumlah_hotel, nama_hotel);
+    if (result != -1) {
+        printf("Hotel ditemukan:\n");
+        printf("%-35s %-10c %-7.1f %-14s Rp %s\n", hotels[result].nama_hotel, hotels[result].bintang_hotel, hotels[result].rating,
+               hotels[result].jenis_penginapan == 'H' ? "Hotel" : (hotels[result].jenis_penginapan == 'A' ? "Apartemen" : "Guest House"), hotels[result].harga);
+    } else {
+        printf("Hotel tidak ditemukan.\n");
+    }
+}
+
 int main() {
-    loadPesananToBST(); // Load existing orders into the BST
+    struct TreeNode *root = NULL;
+    loadPesananToBST(&root); // Load existing orders into the BST
 
     int pilihan;
     do {
@@ -785,13 +911,13 @@ int main() {
 
         switch (pilihan) {
             case 1:
-                pesanTiket();
+                pesanTiket(&root);
                 break;
             case 2:
-                lihatTiket();
+                lihatTiket(root);
                 break;
             case 3:
-                batalkanPesan();
+                batalkanPesan(&root);
                 break;
             case 4:
                 lihatHotel();

@@ -24,6 +24,12 @@ struct Tiket {
     int jumlah_kamar;
 };
 
+struct TreeNode {
+    struct Tiket tiket;
+    struct TreeNode *left;
+    struct TreeNode *right;
+};
+
 long int konversiHarga(const char *harga) {
     long int nilai = 0;
     int panjang = strlen(harga);
@@ -46,12 +52,6 @@ long int konversiHarga(const char *harga) {
     return nilai;
 }
 
-struct TreeNode {
-    struct Tiket tiket;
-    struct TreeNode *left;
-    struct TreeNode *right;
-};
-
 struct TreeNode* createNode(struct Tiket tiket) {
     struct TreeNode *newNode = (struct TreeNode *)malloc(sizeof(struct TreeNode));
     if (newNode != NULL) {
@@ -62,7 +62,7 @@ struct TreeNode* createNode(struct Tiket tiket) {
     return newNode;
 }
 
-int compareDates(const char *date1, const char *date2) {
+int BandingkanTanggal(const char *date1, const char *date2) {
     int dd1, mm1, yy1;
     int dd2, mm2, yy2;
     sscanf(date1, "%d/%d/%d", &dd1, &mm1, &yy1);
@@ -79,7 +79,7 @@ void insertNode(struct TreeNode **node, struct Tiket tiket) {
     if (*node == NULL) {
         *node = createNode(tiket);
     } else {
-        if (compareDates(tiket.tanggal_checkin, (*node)->tiket.tanggal_checkin) < 0) {
+        if (BandingkanTanggal(tiket.tanggal_checkin, (*node)->tiket.tanggal_checkin) < 0) {
             insertNode(&((*node)->left), tiket);
         } else {
             insertNode(&((*node)->right), tiket);
@@ -105,7 +105,7 @@ struct TreeNode* cariTiket(struct TreeNode *node, const char *tanggal_checkin) {
     if (node == NULL) {
         return NULL;
     }
-    int cmp = compareDates(tanggal_checkin, node->tiket.tanggal_checkin);
+    int cmp = BandingkanTanggal(tanggal_checkin, node->tiket.tanggal_checkin);
     if (cmp == 0) {
         return node;
     } else if (cmp < 0) {
@@ -124,14 +124,12 @@ void loadPesananToBST(struct TreeNode **root) {
     struct Tiket tiket;
     long int hargaNumerik;
 
-    // Membaca baris pertama untuk menjadi root
     if (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
                &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
         sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
-        *root = createNode(tiket);  // Membuat root dengan data dari baris pertama
+        *root = createNode(tiket); 
     }
 
-    // Membaca sisa baris dan memasukkannya ke dalam BST
     while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
                   &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
         sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
@@ -291,33 +289,85 @@ struct TreeNode* findMin(struct TreeNode* node) {
     return node;
 }
 
+
+struct TreeNode* deleteLeafNode(struct TreeNode* root, const char* tanggal_checkin) {
+    if (root == NULL) return root;
+
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
+    if (cmp < 0) {
+        root->left = deleteLeafNode(root->left, tanggal_checkin);
+    } else if (cmp > 0) {
+        root->right = deleteLeafNode(root->right, tanggal_checkin);
+    } else {
+        if (root->left == NULL && root->right == NULL) {
+            free(root);
+            return NULL;
+        }
+    }
+    return root;
+}
+
+
+struct TreeNode* deleteNodeWithOneChild(struct TreeNode* root, const char* tanggal_checkin) {
+    if (root == NULL) return root;
+
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
+    if (cmp < 0) {
+        root->left = deleteNodeWithOneChild(root->left, tanggal_checkin);
+    } else if (cmp > 0) {
+        root->right = deleteNodeWithOneChild(root->right, tanggal_checkin);
+    } else {
+        if (root->left == NULL && root->right != NULL) {
+            struct TreeNode* temp = root->right;
+            free(root);
+            return temp;
+        } else if (root->right == NULL && root->left != NULL) {
+            struct TreeNode* temp = root->left;
+            free(root);
+            return temp;
+        }
+    }
+    return root;
+}
+
+struct TreeNode* deleteNodeWithTwoChildren(struct TreeNode* root, const char* tanggal_checkin) {
+    if (root == NULL) return root;
+
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
+    if (cmp < 0) {
+        root->left = deleteNodeWithTwoChildren(root->left, tanggal_checkin);
+    } else if (cmp > 0) {
+        root->right = deleteNodeWithTwoChildren(root->right, tanggal_checkin);
+    } else {
+        if (root->left != NULL && root->right != NULL) {
+            struct TreeNode* temp = findMin(root->right);
+            root->tiket = temp->tiket;
+            root->right = deleteNodeWithTwoChildren(root->right, temp->tiket.tanggal_checkin);
+        }
+    }
+    return root;
+}
+
 struct TreeNode* deleteNode(struct TreeNode* root, const char* tanggal_checkin) {
     if (root == NULL) return root;
 
-    int cmp = compareDates(tanggal_checkin, root->tiket.tanggal_checkin);
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
     if (cmp < 0) {
         root->left = deleteNode(root->left, tanggal_checkin);
     } else if (cmp > 0) {
         root->right = deleteNode(root->right, tanggal_checkin);
     } else {
-        if (root->left == NULL) {
-            struct TreeNode* temp = root->right;
-            free(root);
-            return temp;
-        } else if (root->right == NULL) {
-            struct TreeNode* temp = root->left;
-            free(root);
-            return temp;
+        if (root->left == NULL && root->right == NULL) {
+            return deleteLeafNode(root, tanggal_checkin);
+        } else if (root->left == NULL || root->right == NULL) {
+            return deleteNodeWithOneChild(root, tanggal_checkin);
+        } else {
+            return deleteNodeWithTwoChildren(root, tanggal_checkin);
         }
-
-        struct TreeNode* temp = findMin(root->right);
-        root->tiket = temp->tiket;
-        root->right = deleteNode(root->right, temp->tiket.tanggal_checkin);
     }
     return root;
 }
 
-// Menambahkan fungsi untuk mengurutkan tiket berdasarkan tanggal check-in menggunakan heap
 struct Tiket heap[MAX_TIKET];
 int heapSize = 0;
 
@@ -326,11 +376,11 @@ void heapifyDown(int idx) {
     int right = 2 * idx + 2;
     int smallest = idx;
 
-    if (left < heapSize && compareDates(heap[left].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+    if (left < heapSize && BandingkanTanggal(heap[left].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
         smallest = left;
     }
 
-    if (right < heapSize && compareDates(heap[right].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+    if (right < heapSize && BandingkanTanggal(heap[right].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
         smallest = right;
     }
 
@@ -345,7 +395,7 @@ void heapifyDown(int idx) {
 void heapifyUp(int idx) {
     int parent = (idx - 1) / 2;
 
-    if (parent >= 0 && compareDates(heap[idx].tanggal_checkin, heap[parent].tanggal_checkin) < 0) {
+    if (parent >= 0 && BandingkanTanggal(heap[idx].tanggal_checkin, heap[parent].tanggal_checkin) < 0) {
         struct Tiket temp = heap[idx];
         heap[idx] = heap[parent];
         heap[parent] = temp;
@@ -431,7 +481,6 @@ void batalkanPesan(struct TreeNode **root) {
     struct Tiket pesanan[MAX_TIKET];
     int jumlah_pesanan = 0;
 
-    // Membaca semua pesanan dari file ke array pesanan
     while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%[^\n]\n", pesanan[jumlah_pesanan].hotel.nama_hotel,
                   pesanan[jumlah_pesanan].tanggal_checkin, &pesanan[jumlah_pesanan].durasi,
                   &pesanan[jumlah_pesanan].jumlah_tamu, &pesanan[jumlah_pesanan].jumlah_kamar,
@@ -451,7 +500,6 @@ void batalkanPesan(struct TreeNode **root) {
             hargaNumerik *= pesanan[i].jumlah_kamar * pesanan[i].durasi;
             printf("| %-2d | %-35s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", i + 1, pesanan[i].hotel.nama_hotel, pesanan[i].tanggal_checkin,
                    pesanan[i].durasi, pesanan[i].jumlah_tamu, pesanan[i].jumlah_kamar, hargaNumerik);
-
         }
         printf("------------------------------------------------------------------------------------------------------------\n\n");
 
@@ -484,20 +532,17 @@ void batalkanPesan(struct TreeNode **root) {
             }
             fclose(file);
 
-            // Hapus dari BST
             *root = deleteNode(*root, pesanan[nomor - 1].tanggal_checkin);
 
-            // Hapus dari heap
-            // Cari indeks tiket yang ingin dihapus di heap
             int heapIndex = -1;
             for (int i = 0; i < heapSize; i++) {
-                if (compareDates(heap[i].tanggal_checkin, pesanan[nomor - 1].tanggal_checkin) == 0) {
+                if (BandingkanTanggal(heap[i].tanggal_checkin, pesanan[nomor - 1].tanggal_checkin) == 0) {
                     heapIndex = i;
                     break;
                 }
             }
             if (heapIndex != -1) {
-                deleteFromHeap(heapIndex); // Hapus dari heap
+                deleteFromHeap(heapIndex);
             }
 
             printf("Pesanan nomor %d berhasil dibatalkan.\n", nomor);
@@ -506,6 +551,7 @@ void batalkanPesan(struct TreeNode **root) {
         printf("Tidak ada pesanan yang bisa dibatalkan.\n");
     }
 }
+
 
 void freeMemoryBST(struct TreeNode *node) {
     if (node != NULL) {
@@ -900,7 +946,7 @@ void searchHotelInterpolation(char *nama_hotel) {
 
     fclose(file);
     
-    quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for interpolation search
+    quickSort(hotels, 0, jumlah_hotel - 1); 
 
     int result = interpolationSearch(hotels, jumlah_hotel, nama_hotel);
     if (result != -1) {
@@ -914,7 +960,7 @@ void searchHotelInterpolation(char *nama_hotel) {
 
 int main() {
     struct TreeNode *root = NULL;
-    loadPesananToBST(&root); // Load existing orders into the BST
+    loadPesananToBST(&root); 
 
     int pilihan;
     do {
@@ -926,7 +972,7 @@ int main() {
         printf("2. Lihat Tiket\n");
         printf("3. Batalkan Pesanan\n");
         printf("4. Lihat Hotel\n");
-        printf("5. Lihat Tiket Terurut Berdasarkan Tanggal Check-in\n"); // Tambahkan opsi ini
+        printf("5. Lihat Tiket Terurut Berdasarkan Tanggal Check-in\n");
         printf("6. Keluar\n");
         printf("Pilihan Anda: ");
         scanf("%d", &pilihan);

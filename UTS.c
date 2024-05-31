@@ -295,7 +295,6 @@ struct TreeNode* deleteNode(struct TreeNode* root, const char* tanggal_checkin) 
     return root;
 }
 
-// Menambahkan fungsi untuk mengurutkan tiket berdasarkan tanggal check-in menggunakan heap
 struct Tiket heap[MAX_TIKET];
 int heapSize = 0;
 
@@ -354,7 +353,6 @@ void deleteFromHeap(int idx) {
     heap[idx] = heap[heapSize - 1];
     heapSize--;
 
-    // Re-heapify downwards or upwards as needed
     heapifyDown(idx);
     heapifyUp(idx);
 }
@@ -409,7 +407,6 @@ void batalkanPesan(struct TreeNode **root) {
     struct Tiket pesanan[MAX_TIKET];
     int jumlah_pesanan = 0;
 
-    // Membaca semua pesanan dari file ke array pesanan
     while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%[^\n]\n", pesanan[jumlah_pesanan].hotel.nama_hotel,
                   pesanan[jumlah_pesanan].tanggal_checkin, &pesanan[jumlah_pesanan].durasi,
                   &pesanan[jumlah_pesanan].jumlah_tamu, &pesanan[jumlah_pesanan].jumlah_kamar,
@@ -462,11 +459,8 @@ void batalkanPesan(struct TreeNode **root) {
             }
             fclose(file);
 
-            // Hapus dari BST
             *root = deleteNode(*root, pesanan[nomor - 1].tanggal_checkin);
 
-            // Hapus dari heap
-            // Cari indeks tiket yang ingin dihapus di heap
             int heapIndex = -1;
             for (int i = 0; i < heapSize; i++) {
                 if (strcmp(heap[i].tanggal_checkin, pesanan[nomor - 1].tanggal_checkin) == 0) {
@@ -475,7 +469,7 @@ void batalkanPesan(struct TreeNode **root) {
                 }
             }
             if (heapIndex != -1) {
-                deleteFromHeap(heapIndex); // Hapus dari heap
+                deleteFromHeap(heapIndex); 
             }
 
             printf("Pesanan nomor %d berhasil dibatalkan.\n", nomor);
@@ -514,7 +508,6 @@ void lihatHotel() {
     printf("Pilihan Anda: ");
     scanf("%d", &pilihan);
 
-    // Membersihkan buffer setelah membaca pilihan
     while ((getchar()) != '\n');
 
     switch (pilihan) {
@@ -543,7 +536,7 @@ void lihatHotel() {
             printf("Masukkan nama hotel yang ingin dicari: ");
             char nama_hotel[MAX_NAMA_HOTEL];
             fgets(nama_hotel, MAX_NAMA_HOTEL, stdin);
-            // Menghapus karakter newline dari input
+    
             nama_hotel[strcspn(nama_hotel, "\n")] = '\0';
             searchHotelBinary(nama_hotel);
             break;
@@ -552,7 +545,7 @@ void lihatHotel() {
             printf("Masukkan nama hotel yang ingin dicari: ");
             char nama_hotel[MAX_NAMA_HOTEL];
             fgets(nama_hotel, MAX_NAMA_HOTEL, stdin);
-            // Menghapus karakter newline dari input
+        
             nama_hotel[strcspn(nama_hotel, "\n")] = '\0';
             searchHotelInterpolation(nama_hotel);
             break;
@@ -793,13 +786,13 @@ int binarySearch(struct Hotel hotels[], int left, int right, char *nama_hotel) {
         int mid = left + (right - left) / 2;
         int cmp = strcmp(hotels[mid].nama_hotel, nama_hotel);
         if (cmp == 0)
-            return mid; // Found!
+            return mid; 
         else if (cmp < 0)
             left = mid + 1;
         else
             right = mid - 1;
     }
-    return -1; // Not found
+    return -1; 
 }
 
 // Interpolation search
@@ -812,7 +805,7 @@ int interpolationSearch(struct Hotel hotels[], int n, char *nama_hotel) {
                  (strcmp(hotels[low + 1].nama_hotel, hotels[low].nama_hotel));
 
         if (strcmp(hotels[pos].nama_hotel, nama_hotel) == 0)
-            return pos; // Found!
+            return pos; 
 
         else if (strcmp(hotels[pos].nama_hotel, nama_hotel) < 0)
             high = pos - 1;
@@ -820,7 +813,7 @@ int interpolationSearch(struct Hotel hotels[], int n, char *nama_hotel) {
             low = pos + 1;
     }
 
-    return -1; // Not found
+    return -1; 
 }
 
 void searchHotelBinary(char *nama_hotel) {
@@ -849,9 +842,8 @@ void searchHotelBinary(char *nama_hotel) {
 
     fclose(file);
 
-    quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for binary search
+    quickSort(hotels, 0, jumlah_hotel - 1); 
 
-    // Remove leading and trailing whitespace from input
     char *start = nama_hotel;
     while (*start == ' ') start++;
     char *end = start + strlen(start) - 1;
@@ -894,9 +886,8 @@ void searchHotelInterpolation(char *nama_hotel) {
 
     fclose(file);
 
-    quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for interpolation search
+    quickSort(hotels, 0, jumlah_hotel - 1); 
 
-    // Remove leading and trailing whitespace from input
     char *start = nama_hotel;
     while (*start == ' ') start++;
     char *end = start + strlen(start) - 1;
@@ -915,7 +906,7 @@ void searchHotelInterpolation(char *nama_hotel) {
 
 int main() {
     struct TreeNode *root = NULL;
-    loadPesananToBST(&root); // Load existing orders into the BST
+    loadPesananToBST(&root); 
 
     int pilihan;
     do {
@@ -927,7 +918,7 @@ int main() {
         printf("2. Lihat Tiket\n");
         printf("3. Batalkan Pesanan\n");
         printf("4. Lihat Hotel\n");
-        printf("5. Lihat Tiket Terurut Berdasarkan Tanggal Check-in\n"); // Tambahkan opsi ini
+        printf("5. Lihat Tiket Terurut Berdasarkan Tanggal Check-in\n"); 
         printf("6. Keluar\n");
         printf("Pilihan Anda: ");
         scanf("%d", &pilihan);
@@ -946,7 +937,7 @@ int main() {
                 lihatHotel();
                 break;
             case 5:
-                lihatTiketTerurut(); // Tambahkan opsi ini
+                lihatTiketTerurut(); 
                 break;
             case 6:
                 printf("Keluar dari program.\n");

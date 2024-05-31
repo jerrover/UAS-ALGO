@@ -24,6 +24,12 @@ struct Tiket {
     int jumlah_kamar;
 };
 
+struct TreeNode {
+    struct Tiket tiket;
+    struct TreeNode *left;
+    struct TreeNode *right;
+};
+
 long int konversiHarga(const char *harga) {
     long int nilai = 0;
     int panjang = strlen(harga);
@@ -46,12 +52,6 @@ long int konversiHarga(const char *harga) {
     return nilai;
 }
 
-struct TreeNode {
-    struct Tiket tiket;
-    struct TreeNode *left;
-    struct TreeNode *right;
-};
-
 struct TreeNode* createNode(struct Tiket tiket) {
     struct TreeNode *newNode = (struct TreeNode *)malloc(sizeof(struct TreeNode));
     if (newNode != NULL) {
@@ -62,11 +62,24 @@ struct TreeNode* createNode(struct Tiket tiket) {
     return newNode;
 }
 
+int BandingkanTanggal(const char *date1, const char *date2) {
+    int dd1, mm1, yy1;
+    int dd2, mm2, yy2;
+    sscanf(date1, "%d/%d/%d", &dd1, &mm1, &yy1);
+    sscanf(date2, "%d/%d/%d", &dd2, &mm2, &yy2);
+
+    if (yy1 != yy2)
+        return yy1 - yy2;
+    if (mm1 != mm2)
+        return mm1 - mm2;
+    return dd1 - dd2;
+}
+
 void insertNode(struct TreeNode **node, struct Tiket tiket) {
     if (*node == NULL) {
         *node = createNode(tiket);
     } else {
-        if (strcmp(tiket.tanggal_checkin, (*node)->tiket.tanggal_checkin) < 0) {
+        if (BandingkanTanggal(tiket.tanggal_checkin, (*node)->tiket.tanggal_checkin) < 0) {
             insertNode(&((*node)->left), tiket);
         } else {
             insertNode(&((*node)->right), tiket);
@@ -92,7 +105,7 @@ struct TreeNode* cariTiket(struct TreeNode *node, const char *tanggal_checkin) {
     if (node == NULL) {
         return NULL;
     }
-    int cmp = strcmp(tanggal_checkin, node->tiket.tanggal_checkin);
+    int cmp = BandingkanTanggal(tanggal_checkin, node->tiket.tanggal_checkin);
     if (cmp == 0) {
         return node;
     } else if (cmp < 0) {
@@ -101,7 +114,6 @@ struct TreeNode* cariTiket(struct TreeNode *node, const char *tanggal_checkin) {
         return cariTiket(node->right, tanggal_checkin);
     }
 }
-
 void loadPesananToBST(struct TreeNode **root) {
     FILE *file = fopen(FILE_PESANAN, "r");
     if (file == NULL) {
@@ -111,6 +123,13 @@ void loadPesananToBST(struct TreeNode **root) {
 
     struct Tiket tiket;
     long int hargaNumerik;
+
+    if (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
+               &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
+        sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
+        *root = createNode(tiket); 
+    }
+
     while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%ld\n", tiket.hotel.nama_hotel, tiket.tanggal_checkin,
                   &tiket.durasi, &tiket.jumlah_tamu, &tiket.jumlah_kamar, &hargaNumerik) != EOF) {
         sprintf(tiket.hotel.harga, "%ld", hargaNumerik);
@@ -119,6 +138,7 @@ void loadPesananToBST(struct TreeNode **root) {
 
     fclose(file);
 }
+
 
 void pesanTiket(struct TreeNode **root) {
     int jumlah_hotel = 0;
@@ -216,9 +236,9 @@ void lihatTiket(struct TreeNode *root) {
         return;
     }
 
-    printf("------------------------------------------------------------------------------------------------------------------\n");
-    printf("| No |              Nama Hotel             | Tanggal Check-in | Durasi | Tamu | Kamar |        Harga       |\n");
-    printf("------------------------------------------------------------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------------------------------------------------\n");
+    printf("| No |               Nama Hotel              | Tanggal Check-in | Durasi | Tamu | Kamar |        Harga       |\n");
+    printf("--------------------------------------------------------------------------------------------------------------\n");
 
     int nomor_pesanan = 1;
     struct Tiket pesanan;
@@ -228,12 +248,12 @@ void lihatTiket(struct TreeNode *root) {
         long int hargaNumerik = konversiHarga(pesanan.hotel.harga);
         hargaNumerik *= pesanan.jumlah_kamar * pesanan.durasi;
 
-        printf("| %-2d | %-35s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", nomor_pesanan, pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
+        printf("| %-2d | %-37s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", nomor_pesanan, pesanan.hotel.nama_hotel, pesanan.tanggal_checkin,
                pesanan.durasi, pesanan.jumlah_tamu, pesanan.jumlah_kamar, hargaNumerik);
         nomor_pesanan++;
     }
 
-    printf("------------------------------------------------------------------------------------------------------------------\n\n");
+    printf("--------------------------------------------------------------------------------------------------------------\n\n");
 
     fclose(file);
 
@@ -269,33 +289,85 @@ struct TreeNode* findMin(struct TreeNode* node) {
     return node;
 }
 
+
+struct TreeNode* deleteLeafNode(struct TreeNode* root, const char* tanggal_checkin) {
+    if (root == NULL) return root;
+
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
+    if (cmp < 0) {
+        root->left = deleteLeafNode(root->left, tanggal_checkin);
+    } else if (cmp > 0) {
+        root->right = deleteLeafNode(root->right, tanggal_checkin);
+    } else {
+        if (root->left == NULL && root->right == NULL) {
+            free(root);
+            return NULL;
+        }
+    }
+    return root;
+}
+
+
+struct TreeNode* deleteNodeWithOneChild(struct TreeNode* root, const char* tanggal_checkin) {
+    if (root == NULL) return root;
+
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
+    if (cmp < 0) {
+        root->left = deleteNodeWithOneChild(root->left, tanggal_checkin);
+    } else if (cmp > 0) {
+        root->right = deleteNodeWithOneChild(root->right, tanggal_checkin);
+    } else {
+        if (root->left == NULL && root->right != NULL) {
+            struct TreeNode* temp = root->right;
+            free(root);
+            return temp;
+        } else if (root->right == NULL && root->left != NULL) {
+            struct TreeNode* temp = root->left;
+            free(root);
+            return temp;
+        }
+    }
+    return root;
+}
+
+struct TreeNode* deleteNodeWithTwoChildren(struct TreeNode* root, const char* tanggal_checkin) {
+    if (root == NULL) return root;
+
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
+    if (cmp < 0) {
+        root->left = deleteNodeWithTwoChildren(root->left, tanggal_checkin);
+    } else if (cmp > 0) {
+        root->right = deleteNodeWithTwoChildren(root->right, tanggal_checkin);
+    } else {
+        if (root->left != NULL && root->right != NULL) {
+            struct TreeNode* temp = findMin(root->right);
+            root->tiket = temp->tiket;
+            root->right = deleteNodeWithTwoChildren(root->right, temp->tiket.tanggal_checkin);
+        }
+    }
+    return root;
+}
+
 struct TreeNode* deleteNode(struct TreeNode* root, const char* tanggal_checkin) {
     if (root == NULL) return root;
 
-    int cmp = strcmp(tanggal_checkin, root->tiket.tanggal_checkin);
+    int cmp = BandingkanTanggal(tanggal_checkin, root->tiket.tanggal_checkin);
     if (cmp < 0) {
         root->left = deleteNode(root->left, tanggal_checkin);
     } else if (cmp > 0) {
         root->right = deleteNode(root->right, tanggal_checkin);
     } else {
-        if (root->left == NULL) {
-            struct TreeNode* temp = root->right;
-            free(root);
-            return temp;
-        } else if (root->right == NULL) {
-            struct TreeNode* temp = root->left;
-            free(root);
-            return temp;
+        if (root->left == NULL && root->right == NULL) {
+            return deleteLeafNode(root, tanggal_checkin);
+        } else if (root->left == NULL || root->right == NULL) {
+            return deleteNodeWithOneChild(root, tanggal_checkin);
+        } else {
+            return deleteNodeWithTwoChildren(root, tanggal_checkin);
         }
-
-        struct TreeNode* temp = findMin(root->right);
-        root->tiket = temp->tiket;
-        root->right = deleteNode(root->right, temp->tiket.tanggal_checkin);
     }
     return root;
 }
 
-// Menambahkan fungsi untuk mengurutkan tiket berdasarkan tanggal check-in menggunakan heap
 struct Tiket heap[MAX_TIKET];
 int heapSize = 0;
 
@@ -304,11 +376,11 @@ void heapifyDown(int idx) {
     int right = 2 * idx + 2;
     int smallest = idx;
 
-    if (left < heapSize && strcmp(heap[left].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+    if (left < heapSize && BandingkanTanggal(heap[left].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
         smallest = left;
     }
 
-    if (right < heapSize && strcmp(heap[right].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
+    if (right < heapSize && BandingkanTanggal(heap[right].tanggal_checkin, heap[smallest].tanggal_checkin) < 0) {
         smallest = right;
     }
 
@@ -323,7 +395,7 @@ void heapifyDown(int idx) {
 void heapifyUp(int idx) {
     int parent = (idx - 1) / 2;
 
-    if (parent >= 0 && strcmp(heap[idx].tanggal_checkin, heap[parent].tanggal_checkin) < 0) {
+    if (parent >= 0 && BandingkanTanggal(heap[idx].tanggal_checkin, heap[parent].tanggal_checkin) < 0) {
         struct Tiket temp = heap[idx];
         heap[idx] = heap[parent];
         heap[parent] = temp;
@@ -409,7 +481,6 @@ void batalkanPesan(struct TreeNode **root) {
     struct Tiket pesanan[MAX_TIKET];
     int jumlah_pesanan = 0;
 
-    // Membaca semua pesanan dari file ke array pesanan
     while (fscanf(file, "%[^#]#%[^#]#%d#%d#%d#%[^\n]\n", pesanan[jumlah_pesanan].hotel.nama_hotel,
                   pesanan[jumlah_pesanan].tanggal_checkin, &pesanan[jumlah_pesanan].durasi,
                   &pesanan[jumlah_pesanan].jumlah_tamu, &pesanan[jumlah_pesanan].jumlah_kamar,
@@ -429,7 +500,6 @@ void batalkanPesan(struct TreeNode **root) {
             hargaNumerik *= pesanan[i].jumlah_kamar * pesanan[i].durasi;
             printf("| %-2d | %-35s | %-16s | %-6d | %-4d | %-5d | Rp %-15ld |\n", i + 1, pesanan[i].hotel.nama_hotel, pesanan[i].tanggal_checkin,
                    pesanan[i].durasi, pesanan[i].jumlah_tamu, pesanan[i].jumlah_kamar, hargaNumerik);
-
         }
         printf("------------------------------------------------------------------------------------------------------------\n\n");
 
@@ -462,20 +532,17 @@ void batalkanPesan(struct TreeNode **root) {
             }
             fclose(file);
 
-            // Hapus dari BST
             *root = deleteNode(*root, pesanan[nomor - 1].tanggal_checkin);
 
-            // Hapus dari heap
-            // Cari indeks tiket yang ingin dihapus di heap
             int heapIndex = -1;
             for (int i = 0; i < heapSize; i++) {
-                if (strcmp(heap[i].tanggal_checkin, pesanan[nomor - 1].tanggal_checkin) == 0) {
+                if (BandingkanTanggal(heap[i].tanggal_checkin, pesanan[nomor - 1].tanggal_checkin) == 0) {
                     heapIndex = i;
                     break;
                 }
             }
             if (heapIndex != -1) {
-                deleteFromHeap(heapIndex); // Hapus dari heap
+                deleteFromHeap(heapIndex);
             }
 
             printf("Pesanan nomor %d berhasil dibatalkan.\n", nomor);
@@ -485,11 +552,12 @@ void batalkanPesan(struct TreeNode **root) {
     }
 }
 
+
 void freeMemoryBST(struct TreeNode *node) {
     if (node != NULL) {
-        freeMemoryBST(node->left);
-        freeMemoryBST(node->right);
-        free(node);
+        freeMemoryBST(node->left); 
+        freeMemoryBST(node->right); 
+        free(node); 
     }
 }
 
@@ -513,9 +581,6 @@ void lihatHotel() {
     printf("10. Kembali\n");
     printf("Pilihan Anda: ");
     scanf("%d", &pilihan);
-
-    // Membersihkan buffer setelah membaca pilihan
-    while ((getchar()) != '\n');
 
     switch (pilihan) {
         case 1:
@@ -542,18 +607,14 @@ void lihatHotel() {
         case 8: {
             printf("Masukkan nama hotel yang ingin dicari: ");
             char nama_hotel[MAX_NAMA_HOTEL];
-            fgets(nama_hotel, MAX_NAMA_HOTEL, stdin);
-            // Menghapus karakter newline dari input
-            nama_hotel[strcspn(nama_hotel, "\n")] = '\0';
+            scanf("%s", nama_hotel);
             searchHotelBinary(nama_hotel);
             break;
         }
         case 9: {
             printf("Masukkan nama hotel yang ingin dicari: ");
             char nama_hotel[MAX_NAMA_HOTEL];
-            fgets(nama_hotel, MAX_NAMA_HOTEL, stdin);
-            // Menghapus karakter newline dari input
-            nama_hotel[strcspn(nama_hotel, "\n")] = '\0';
+            scanf("%s", nama_hotel);
             searchHotelInterpolation(nama_hotel);
             break;
         }
@@ -573,11 +634,10 @@ void swap(struct Hotel *a, struct Hotel *b) {
 
 // Quick Sort untuk pengurutan berdasarkan harga
 int partition(struct Hotel arr[], int low, int high) {
-    char pivot[MAX_NAMA_HOTEL];
-    strcpy(pivot, arr[high].nama_hotel);
+    long int pivot = konversiHarga(arr[high].harga);
     int i = low - 1;
     for (int j = low; j < high; j++) {
-        if (strcmp(arr[j].nama_hotel, pivot) < 0) {
+        if (konversiHarga(arr[j].harga) < pivot) {
             i++;
             swap(&arr[i], &arr[j]);
         }
@@ -586,13 +646,12 @@ int partition(struct Hotel arr[], int low, int high) {
     return i + 1;
 }
 
-
 void quickSort(struct Hotel arr[], int low, int high) {
     if (low < high) {
         int pi = partition(arr, low, high);
         quickSort(arr, low, pi - 1);
         quickSort(arr, pi + 1, high);
-        }
+    }
 }
 
 void lihatHotelBerdasarkanHarga(char urutan) {
@@ -788,39 +847,39 @@ void lihatHotelBerdasarkanTipe() {
 }
 
 // Binary search
-int binarySearch(struct Hotel hotels[], int left, int right, char *nama_hotel) {
-    while (left <= right) {
-        int mid = left + (right - left) / 2;
-        int cmp = strcmp(hotels[mid].nama_hotel, nama_hotel);
-        if (cmp == 0)
-            return mid; // Found!
-        else if (cmp < 0)
-            left = mid + 1;
+int binarySearch(struct Hotel arr[], int l, int r, char *x) {
+    while (l <= r) {
+        int m = l + (r - l) / 2;
+        int res = strcmp(arr[m].nama_hotel, x);
+        if (res == 0)
+            return m;
+        if (res < 0)
+            l = m + 1;
         else
-            right = mid - 1;
+            r = m - 1;
     }
-    return -1; // Not found
+    return -1;
 }
 
 // Interpolation search
-int interpolationSearch(struct Hotel hotels[], int n, char *nama_hotel) {
-    int low = 0, high = n - 1;
-
-    while (low <= high && strcmp(hotels[low].nama_hotel, nama_hotel) <= 0) {
-        int pos = low + ((high - low) * (strcmp(nama_hotel, hotels[low].nama_hotel) -
-                                            strcmp(hotels[low].nama_hotel, hotels[low + 1].nama_hotel))) /
-                 (strcmp(hotels[low + 1].nama_hotel, hotels[low].nama_hotel));
-
-        if (strcmp(hotels[pos].nama_hotel, nama_hotel) == 0)
-            return pos; // Found!
-
-        else if (strcmp(hotels[pos].nama_hotel, nama_hotel) < 0)
-            high = pos - 1;
+int interpolationSearch(struct Hotel arr[], int n, char *x) {
+    int lo = 0, hi = (n - 1);
+    while (lo <= hi && strcmp(x, arr[lo].nama_hotel) >= 0 && strcmp(x, arr[hi].nama_hotel) <= 0) {
+        if (lo == hi) {
+            if (strcmp(arr[lo].nama_hotel, x) == 0)
+                return lo;
+            return -1;
+        }
+        int pos = lo + (((double)(hi - lo) /
+            (strcmp(arr[hi].nama_hotel, arr[lo].nama_hotel))) * (strcmp(x, arr[lo].nama_hotel)));
+        if (strcmp(arr[pos].nama_hotel, x) == 0)
+            return pos;
+        if (strcmp(arr[pos].nama_hotel, x) < 0)
+            lo = pos + 1;
         else
-            low = pos + 1;
+            hi = pos - 1;
     }
-
-    return -1; // Not found
+    return -1;
 }
 
 void searchHotelBinary(char *nama_hotel) {
@@ -848,17 +907,10 @@ void searchHotelBinary(char *nama_hotel) {
     }
 
     fclose(file);
-
+    
     quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for binary search
 
-    // Remove leading and trailing whitespace from input
-    char *start = nama_hotel;
-    while (*start == ' ') start++;
-    char *end = start + strlen(start) - 1;
-    while (end > start && *end == ' ') end--;
-    *(end + 1) = '\0';
-
-    int result = binarySearch(hotels, 0, jumlah_hotel - 1, start);
+    int result = binarySearch(hotels, 0, jumlah_hotel - 1, nama_hotel);
     if (result != -1) {
         printf("Hotel ditemukan:\n");
         printf("%-35s %-10c %-7.1f %-14s Rp %s\n", hotels[result].nama_hotel, hotels[result].bintang_hotel, hotels[result].rating,
@@ -893,17 +945,10 @@ void searchHotelInterpolation(char *nama_hotel) {
     }
 
     fclose(file);
+    
+    quickSort(hotels, 0, jumlah_hotel - 1); 
 
-    quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for interpolation search
-
-    // Remove leading and trailing whitespace from input
-    char *start = nama_hotel;
-    while (*start == ' ') start++;
-    char *end = start + strlen(start) - 1;
-    while (end > start && *end == ' ') end--;
-    *(end + 1) = '\0';
-
-    int result = interpolationSearch(hotels, jumlah_hotel, start);
+    int result = interpolationSearch(hotels, jumlah_hotel, nama_hotel);
     if (result != -1) {
         printf("Hotel ditemukan:\n");
         printf("%-35s %-10c %-7.1f %-14s Rp %s\n", hotels[result].nama_hotel, hotels[result].bintang_hotel, hotels[result].rating,
@@ -915,7 +960,7 @@ void searchHotelInterpolation(char *nama_hotel) {
 
 int main() {
     struct TreeNode *root = NULL;
-    loadPesananToBST(&root); // Load existing orders into the BST
+    loadPesananToBST(&root); 
 
     int pilihan;
     do {
@@ -927,7 +972,7 @@ int main() {
         printf("2. Lihat Tiket\n");
         printf("3. Batalkan Pesanan\n");
         printf("4. Lihat Hotel\n");
-        printf("5. Lihat Tiket Terurut Berdasarkan Tanggal Check-in\n"); // Tambahkan opsi ini
+        printf("5. Lihat Tiket Terurut Berdasarkan Tanggal Check-in\n");
         printf("6. Keluar\n");
         printf("Pilihan Anda: ");
         scanf("%d", &pilihan);

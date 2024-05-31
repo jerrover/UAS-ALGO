@@ -487,9 +487,9 @@ void batalkanPesan(struct TreeNode **root) {
 
 void freeMemoryBST(struct TreeNode *node) {
     if (node != NULL) {
-        freeMemoryBST(node->left); 
-        freeMemoryBST(node->right); 
-        free(node); 
+        freeMemoryBST(node->left);
+        freeMemoryBST(node->right);
+        free(node);
     }
 }
 
@@ -513,6 +513,9 @@ void lihatHotel() {
     printf("10. Kembali\n");
     printf("Pilihan Anda: ");
     scanf("%d", &pilihan);
+
+    // Membersihkan buffer setelah membaca pilihan
+    while ((getchar()) != '\n');
 
     switch (pilihan) {
         case 1:
@@ -539,14 +542,18 @@ void lihatHotel() {
         case 8: {
             printf("Masukkan nama hotel yang ingin dicari: ");
             char nama_hotel[MAX_NAMA_HOTEL];
-            scanf("%s", nama_hotel);
+            fgets(nama_hotel, MAX_NAMA_HOTEL, stdin);
+            // Menghapus karakter newline dari input
+            nama_hotel[strcspn(nama_hotel, "\n")] = '\0';
             searchHotelBinary(nama_hotel);
             break;
         }
         case 9: {
             printf("Masukkan nama hotel yang ingin dicari: ");
             char nama_hotel[MAX_NAMA_HOTEL];
-            scanf("%s", nama_hotel);
+            fgets(nama_hotel, MAX_NAMA_HOTEL, stdin);
+            // Menghapus karakter newline dari input
+            nama_hotel[strcspn(nama_hotel, "\n")] = '\0';
             searchHotelInterpolation(nama_hotel);
             break;
         }
@@ -566,10 +573,11 @@ void swap(struct Hotel *a, struct Hotel *b) {
 
 // Quick Sort untuk pengurutan berdasarkan harga
 int partition(struct Hotel arr[], int low, int high) {
-    long int pivot = konversiHarga(arr[high].harga);
+    char pivot[MAX_NAMA_HOTEL];
+    strcpy(pivot, arr[high].nama_hotel);
     int i = low - 1;
     for (int j = low; j < high; j++) {
-        if (konversiHarga(arr[j].harga) > pivot) {
+        if (strcmp(arr[j].nama_hotel, pivot) < 0) {
             i++;
             swap(&arr[i], &arr[j]);
         }
@@ -578,12 +586,13 @@ int partition(struct Hotel arr[], int low, int high) {
     return i + 1;
 }
 
+
 void quickSort(struct Hotel arr[], int low, int high) {
     if (low < high) {
         int pi = partition(arr, low, high);
         quickSort(arr, low, pi - 1);
         quickSort(arr, pi + 1, high);
-    }
+        }
 }
 
 void lihatHotelBerdasarkanHarga(char urutan) {
@@ -779,39 +788,39 @@ void lihatHotelBerdasarkanTipe() {
 }
 
 // Binary search
-int binarySearch(struct Hotel arr[], int l, int r, char *x) {
-    while (l <= r) {
-        int m = l + (r - l) / 2;
-        int res = strcmp(arr[m].nama_hotel, x);
-        if (res == 0)
-            return m;
-        if (res < 0)
-            l = m + 1;
+int binarySearch(struct Hotel hotels[], int left, int right, char *nama_hotel) {
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        int cmp = strcmp(hotels[mid].nama_hotel, nama_hotel);
+        if (cmp == 0)
+            return mid; // Found!
+        else if (cmp < 0)
+            left = mid + 1;
         else
-            r = m - 1;
+            right = mid - 1;
     }
-    return -1;
+    return -1; // Not found
 }
 
 // Interpolation search
-int interpolationSearch(struct Hotel arr[], int n, char *x) {
-    int lo = 0, hi = (n - 1);
-    while (lo <= hi && strcmp(x, arr[lo].nama_hotel) >= 0 && strcmp(x, arr[hi].nama_hotel) <= 0) {
-        if (lo == hi) {
-            if (strcmp(arr[lo].nama_hotel, x) == 0)
-                return lo;
-            return -1;
-        }
-        int pos = lo + (((double)(hi - lo) /
-            (strcmp(arr[hi].nama_hotel, arr[lo].nama_hotel))) * (strcmp(x, arr[lo].nama_hotel)));
-        if (strcmp(arr[pos].nama_hotel, x) == 0)
-            return pos;
-        if (strcmp(arr[pos].nama_hotel, x) < 0)
-            lo = pos + 1;
+int interpolationSearch(struct Hotel hotels[], int n, char *nama_hotel) {
+    int low = 0, high = n - 1;
+
+    while (low <= high && strcmp(hotels[low].nama_hotel, nama_hotel) <= 0) {
+        int pos = low + ((high - low) * (strcmp(nama_hotel, hotels[low].nama_hotel) -
+                                            strcmp(hotels[low].nama_hotel, hotels[low + 1].nama_hotel))) /
+                 (strcmp(hotels[low + 1].nama_hotel, hotels[low].nama_hotel));
+
+        if (strcmp(hotels[pos].nama_hotel, nama_hotel) == 0)
+            return pos; // Found!
+
+        else if (strcmp(hotels[pos].nama_hotel, nama_hotel) < 0)
+            high = pos - 1;
         else
-            hi = pos - 1;
+            low = pos + 1;
     }
-    return -1;
+
+    return -1; // Not found
 }
 
 void searchHotelBinary(char *nama_hotel) {
@@ -839,10 +848,17 @@ void searchHotelBinary(char *nama_hotel) {
     }
 
     fclose(file);
-    
+
     quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for binary search
 
-    int result = binarySearch(hotels, 0, jumlah_hotel - 1, nama_hotel);
+    // Remove leading and trailing whitespace from input
+    char *start = nama_hotel;
+    while (*start == ' ') start++;
+    char *end = start + strlen(start) - 1;
+    while (end > start && *end == ' ') end--;
+    *(end + 1) = '\0';
+
+    int result = binarySearch(hotels, 0, jumlah_hotel - 1, start);
     if (result != -1) {
         printf("Hotel ditemukan:\n");
         printf("%-35s %-10c %-7.1f %-14s Rp %s\n", hotels[result].nama_hotel, hotels[result].bintang_hotel, hotels[result].rating,
@@ -877,10 +893,17 @@ void searchHotelInterpolation(char *nama_hotel) {
     }
 
     fclose(file);
-    
+
     quickSort(hotels, 0, jumlah_hotel - 1); // Sorting hotels for interpolation search
 
-    int result = interpolationSearch(hotels, jumlah_hotel, nama_hotel);
+    // Remove leading and trailing whitespace from input
+    char *start = nama_hotel;
+    while (*start == ' ') start++;
+    char *end = start + strlen(start) - 1;
+    while (end > start && *end == ' ') end--;
+    *(end + 1) = '\0';
+
+    int result = interpolationSearch(hotels, jumlah_hotel, start);
     if (result != -1) {
         printf("Hotel ditemukan:\n");
         printf("%-35s %-10c %-7.1f %-14s Rp %s\n", hotels[result].nama_hotel, hotels[result].bintang_hotel, hotels[result].rating,
